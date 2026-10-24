@@ -3,8 +3,8 @@
 在项目根目录运行：
     python scripts/prepare_data.py
 
-查找数据的顺序：--root → 环境变量 SYSU_MM01_ROOT → data/SYSU-MM01 → 上次自动下载的位置；
-都没有时用 kagglehub 下载课程镜像（需要 pip install kagglehub；若提示需要登录，按屏幕说明配置 Kaggle API
+查找数据的顺序：--root → 环境变量 SYSU_MM01_ROOT → data/SYSU-MM01；
+都没有时用 kagglehub 把课程镜像直接下载到 data/SYSU-MM01（需要 pip install kagglehub；若提示需要登录，按屏幕说明配置 Kaggle API
 或手动下载 zip）。已有 manifest 时不会重复扫描，--rebuild 强制重新生成。
 
 结果：

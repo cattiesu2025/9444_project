@@ -5,8 +5,8 @@
     loader, sampler, dataset, label_map = get_train_loader("M0")   # 训练数据；final=True 用 395 身份
     query = get_eval_dataset("val", modality="ir")                  # 特征导出/评价，不含训练标签
 
-两者会自动：查找已有数据（参数 root → 环境变量 SYSU_MM01_ROOT → data/SYSU-MM01 → 上次下载位置），
-找不到时从 Kaggle 下载；manifest 不存在时生成 manifest 与审计；审计未通过时拒绝提供训练数据。
+两者会自动：查找已有数据（参数 root → 环境变量 SYSU_MM01_ROOT → data/SYSU-MM01），
+找不到时从 Kaggle 下载到 data/SYSU-MM01；manifest 不存在时生成 manifest 与审计；审计未通过时拒绝提供训练数据。
 
 其他公共函数：
     prepare_data(...)         -> 只做"确保数据 + manifest + 审计"，返回路径与审计结论
@@ -33,6 +33,7 @@ import math
 import os
 import random
 import re
+import shutil
 import subprocess
 import time
 from collections import Counter, defaultdict
@@ -60,7 +61,7 @@ except ImportError:  # pragma: no cover - 由 _require_torch 给出明确报错
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DATA_ROOT = PROJECT_ROOT / "data" / "SYSU-MM01"
 DEFAULT_MANIFEST_DIR = PROJECT_ROOT / "artifacts" / "manifests"
-DATASET_POINTER = PROJECT_ROOT / "data" / "dataset_location.json"  # 自动下载后记录数据位置（不入 Git）
+DATASET_POINTER = PROJECT_ROOT / "data" / "dataset_location.json"  # 自动下载的来源与日期（不入 Git）
 DATA_ROOT_ENV = "SYSU_MM01_ROOT"                                     # 可用环境变量指定数据目录
 KAGGLE_HANDLE = "coconutjean/sysumm01"                               # 课程提供的 Kaggle 镜像
 KAGGLE_URL = "https://www.kaggle.com/datasets/coconutjean/sysumm01"
@@ -1099,49 +1100,96 @@ def _read_pointer() -> dict:
         return {}
 
 
+def _is_within(path: Path, parent: Path) -> bool:
+    path, parent = Path(path).resolve(), Path(parent).resolve()
+    return path == parent or parent in path.parents
+
+
+def _move_into_data_dir(src_root: Path, target: Path | None = None) -> Path:
+    """把数据根目录下的全部内容移动到 data/SYSU-MM01（同一磁盘上是重命名，几乎瞬间完成，不占双份空间）。"""
+    target = target or DEFAULT_DATA_ROOT
+    target.mkdir(parents=True, exist_ok=True)
+    children = list(Path(src_root).iterdir())
+    conflicts = [c.name for c in children if (target / c.name).exists()]
+    if conflicts:
+        raise RuntimeError(f"无法移动数据：{target} 中已存在 {conflicts}，请先检查并清理该目录。")
+    print(f"[data] moving dataset from {src_root} to {target} ...", flush=True)
+    for child in children:
+        shutil.move(str(child), str(target / child.name))
+    return find_dataset_root(target)
+
+
+def _record_download(root: Path, downloaded_on: str | None = None, previous: dict | None = None) -> None:
+    """在 data/dataset_location.json 记录来源与下载日期，供审计报告使用。"""
+    info = dict(previous or {})
+    info.update(root=str(root), source=KAGGLE_URL, handle=KAGGLE_HANDLE)
+    info.setdefault("downloaded_on", downloaded_on or dt.date.today().isoformat())
+    DATASET_POINTER.parent.mkdir(parents=True, exist_ok=True)
+    DATASET_POINTER.write_text(json.dumps(info, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
 def locate_dataset(root: str | os.PathLike | None = None) -> Path | None:
-    """按顺序查找已有数据：参数 root → 环境变量 SYSU_MM01_ROOT → data/SYSU-MM01 → 上次自动下载的位置。"""
+    """按顺序查找已有数据：参数 root → 环境变量 SYSU_MM01_ROOT → data/SYSU-MM01。"""
     if root is not None:
         return _try_root(root)
-    for candidate in (os.environ.get(DATA_ROOT_ENV), DEFAULT_DATA_ROOT, _read_pointer().get("root")):
+    for candidate in (os.environ.get(DATA_ROOT_ENV), DEFAULT_DATA_ROOT):
         found = _try_root(candidate)
         if found:
             return found
     return None
 
 
-def download_dataset() -> Path:
-    """用 kagglehub 下载课程 Kaggle 镜像（约 2 GB 压缩包），返回数据根目录并记录位置。
+def _migrate_previous_download() -> Path | None:
+    """旧版本会把数据下载到 kagglehub 缓存目录；若记录的位置在项目外，把它移进 data/SYSU-MM01。"""
+    pointer = _read_pointer()
+    old = _try_root(pointer.get("root"))
+    if old is None or _is_within(old, DEFAULT_DATA_ROOT):
+        return None
+    root = _move_into_data_dir(old)
+    _record_download(root, previous=pointer)
+    print(f"[data] dataset now at {root}", flush=True)
+    return root
 
-    kagglehub 下载到它自己的缓存目录（默认 用户目录/.cache/kagglehub，可用环境变量 KAGGLEHUB_CACHE 改），
-    不复制到项目里，避免占两份空间；位置记录在 data/dataset_location.json，之后自动找到。
+
+def download_dataset(target: str | os.PathLike | None = None) -> Path:
+    """用 kagglehub 把课程 Kaggle 镜像（约 2 GB 压缩包）直接下载到 data/SYSU-MM01，返回数据根目录。
+
+    使用 kagglehub 的 output_dir，不经过系统缓存目录；旧版 kagglehub 不支持时先下载到缓存再移动过来。
+    来源与日期记录在 data/dataset_location.json（不入 Git）。
     """
+    target = _project_path(target) if target is not None else DEFAULT_DATA_ROOT
     try:
         import kagglehub
     except ImportError as exc:
         raise RuntimeError("自动下载需要 kagglehub：pip install kagglehub\n" + _DOWNLOAD_HELP) from exc
-    print(f"[data] downloading {KAGGLE_HANDLE} from Kaggle (about 2 GB, first time only) ...", flush=True)
+    target.mkdir(parents=True, exist_ok=True)
+    print(f"[data] downloading {KAGGLE_HANDLE} from Kaggle into {target} (about 2 GB, first time only) ...",
+          flush=True)
     try:
-        path = kagglehub.dataset_download(KAGGLE_HANDLE)
+        try:
+            path = kagglehub.dataset_download(KAGGLE_HANDLE, output_dir=str(target))
+        except TypeError:  # kagglehub < 0.3 没有 output_dir
+            path = kagglehub.dataset_download(KAGGLE_HANDLE)
     except Exception as exc:
         raise RuntimeError(f"下载失败：{type(exc).__name__}: {exc}\n" + _DOWNLOAD_HELP) from exc
     root = find_dataset_root(path)
-    DATASET_POINTER.parent.mkdir(parents=True, exist_ok=True)
-    DATASET_POINTER.write_text(json.dumps({
-        "root": str(root), "source": KAGGLE_URL, "handle": KAGGLE_HANDLE,
-        "downloaded_on": dt.date.today().isoformat(),
-    }, indent=2, ensure_ascii=False), encoding="utf-8")
+    if not _is_within(root, target):
+        root = _move_into_data_dir(root, target)
+    _record_download(root)
     print(f"[data] dataset ready at {root}", flush=True)
     return root
 
 
 def ensure_dataset(root: str | os.PathLike | None = None, download: bool = True) -> Path:
-    """有数据就直接用，没有就（在 download=True 时）自动下载。返回含 cam1–cam6 与 exp 的目录。"""
+    """有数据就直接用，没有就（在 download=True 时）下载到 data/SYSU-MM01。返回含 cam1–cam6 与 exp 的目录。"""
     found = locate_dataset(root)
     if found:
         return found
     if root is not None:
         raise FileNotFoundError(f"指定的数据目录中找不到 cam1/ 与 exp/：{_project_path(root)}")
+    migrated = _migrate_previous_download()
+    if migrated:
+        return migrated
     if not download:
         raise FileNotFoundError("没有找到 SYSU-MM01，且未允许下载。\n" + _DOWNLOAD_HELP)
     return download_dataset()

@@ -9,7 +9,7 @@ pip install numpy pillow torch torchvision kagglehub
 python scripts/prepare_data.py
 ```
 
-没有数据时会自动从课程 Kaggle 镜像下载（约 2 GB，需要 Kaggle 登录时按屏幕提示操作），然后生成 manifest、审计并检查接口。看到"全部通过"即可。已有数据可用 `--root <目录>` 或环境变量 `SYSU_MM01_ROOT` 指定。Katana 计算节点可能不能联网，请先在登录节点运行一次。
+没有数据时会自动从课程 Kaggle 镜像下载到 `data/SYSU-MM01`（约 2 GB，需要 Kaggle 登录时按屏幕提示操作），然后生成 manifest、审计并检查接口。看到"全部通过"即可。已有数据可用 `--root <目录>` 或环境变量 `SYSU_MM01_ROOT` 指定。Katana 计算节点可能不能联网，请先在登录节点运行一次。
 
 ## 2. 训练时取数据
 

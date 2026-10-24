@@ -287,17 +287,62 @@ def test_ensure_dataset_uses_existing_data_without_download(dataset, isolated_pa
     assert D.ensure_dataset() == root
 
 
-def test_ensure_dataset_downloads_when_missing(dataset, isolated_paths, monkeypatch):
+def _no_download(monkeypatch):
+    import types
+    monkeypatch.setitem(sys.modules, "kagglehub",
+                        types.SimpleNamespace(dataset_download=lambda *a, **k: pytest.fail("不应重复下载")))
+
+
+def test_download_goes_directly_into_data_dir(dataset, isolated_paths, monkeypatch):
+    import shutil
     import types
     root, _, _ = dataset
     calls = []
-    fake = types.SimpleNamespace(dataset_download=lambda handle: calls.append(handle) or str(root.parent.parent))
-    monkeypatch.setitem(sys.modules, "kagglehub", fake)
-    assert D.ensure_dataset() == root
-    assert calls == [D.KAGGLE_HANDLE]
-    # 第二次通过下载记录找到，不再下载
-    monkeypatch.setitem(sys.modules, "kagglehub", types.SimpleNamespace(dataset_download=lambda h: pytest.fail("重复下载")))
-    assert D.ensure_dataset() == root
+
+    def fake_download(handle, output_dir=None):  # 模拟 kagglehub ≥0.3：直接写入 output_dir
+        calls.append((handle, output_dir))
+        shutil.copytree(root, output_dir, dirs_exist_ok=True)
+        return output_dir
+
+    monkeypatch.setitem(sys.modules, "kagglehub", types.SimpleNamespace(dataset_download=fake_download))
+    got = D.ensure_dataset()
+    assert got == D.DEFAULT_DATA_ROOT.resolve()
+    assert calls == [(D.KAGGLE_HANDLE, str(D.DEFAULT_DATA_ROOT))]
+    assert D._read_pointer()["source"] == D.KAGGLE_URL
+    _no_download(monkeypatch)
+    assert D.ensure_dataset() == got  # 第二次直接用 data/SYSU-MM01
+
+
+def test_old_kagglehub_cache_download_is_moved_into_data_dir(dataset, isolated_paths, monkeypatch):
+    import shutil
+    import types
+    root, _, _ = dataset
+    cache = isolated_paths / "cache" / "versions" / "1"
+    shutil.copytree(root, cache)
+
+    def old_download(handle):  # 模拟旧版 kagglehub：没有 output_dir，只下载到缓存
+        return str(cache)
+
+    monkeypatch.setitem(sys.modules, "kagglehub", types.SimpleNamespace(dataset_download=old_download))
+    got = D.ensure_dataset()
+    assert got == D.DEFAULT_DATA_ROOT.resolve()
+    assert (got / "cam1").is_dir() and not any(cache.iterdir())  # 移动而不是复制
+
+
+def test_previous_cache_download_is_migrated(dataset, isolated_paths, monkeypatch):
+    import json
+    import shutil
+    root, _, _ = dataset
+    cache = isolated_paths / "home" / ".cache" / "kagglehub" / "versions" / "1"
+    shutil.copytree(root, cache)
+    D.DATASET_POINTER.parent.mkdir(parents=True, exist_ok=True)
+    D.DATASET_POINTER.write_text(json.dumps({"root": str(cache), "downloaded_on": "2026-10-24"}))
+    _no_download(monkeypatch)
+    got = D.ensure_dataset(download=False)
+    assert got == D.DEFAULT_DATA_ROOT.resolve() and (got / "exp" / "train_id.txt").exists()
+    assert not any(cache.iterdir())
+    pointer = D._read_pointer()
+    assert pointer["root"] == str(got) and pointer["downloaded_on"] == "2026-10-24"
 
 
 def test_ensure_dataset_without_download_gives_instructions(isolated_paths):
