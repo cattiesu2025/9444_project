@@ -4,6 +4,7 @@
   "owner": "B",
   "data": {
     "root": "data/SYSU-MM01",
+    "manifest": "artifacts/manifests/manifest.csv",
     "train_split": "train",
     "evaluation_split": "val",
     "train_identities": 296,

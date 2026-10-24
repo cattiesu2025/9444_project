@@ -23,7 +23,7 @@ manifest + 固定 gallery → evaluate → metrics → 图表/Notebook
 | 接口 | 必需字段与约束 |
 | --- | --- |
 | manifest | relative_path, identity, camera, modality, split, width, height, channels, file_bytes, sha256 |
-| batch | images `[2PK,3,256,128]`、labels（连续训练标签）、identities（原始 ID）、cameras、modalities、paths；逐行对齐 |
+| batch | images `[2PK,3,256,128]`、labels（连续训练标签）、identities（原始 ID）、cameras、modalities（0=rgb，1=ir）、gray、row_indices、paths；逐行对齐；前 PK 行 RGB、后 PK 行 IR，两半身份顺序相同，每身份连续 K 行。详见 [数据接口说明](data_interface.md) |
 | model output | global_feature `[N,768]`、global_logits `[N,C]`、local_features、local_logits；L 关闭时局部字段为 None |
 | patch grid | 从 patch embedding 读取 H_p/W_p；去除特殊 token；不得开平方推断 |
 | exported features | features、identities、cameras、modalities、paths；记录 BN 位置、归一化、距离及权重 checksum |

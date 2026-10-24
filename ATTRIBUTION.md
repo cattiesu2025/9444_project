@@ -1,9 +1,10 @@
 # 来源与复现登记
 
-目前没有复制或引入第三方实现。采用代码前填写下表并保留适用的许可声明；未确认许可不等于可任意再发布。本仓库尚未选择统一开源许可证。
+目前只引入一处第三方实现：作者的 RandomErasing（见下表）。采用代码前填写下表并保留适用的许可声明；未确认许可不等于可任意再发布。本仓库尚未选择统一开源许可证。
 
 | 组件 | 来源 | 锁定 commit | 许可状态 | 原始路径 / 本组路径 | 修改 / 负责人 |
 | --- | --- | --- | --- | --- | --- |
+| PMT 数据增强 | https://github.com/hulu88/PMT | 0b31da97b06428473bc4a1134b322ea226340818 | 仓库未声明许可证，待核对 | Pytorch-PMT-VI-ReID/transforms.py（RandomErasing、增强顺序与参数）、process_sysu.py（预缩放）/ src/data.py | 灰度转换改为采样器逐样本决定，便于平滑过渡；每样本独立增强种子；A |
 | PMT | https://github.com/hulu88/PMT | 待核对 | 待核对 | 待导入 / src/model.py、src/losses.py | B |
 | SYSU 协议 | https://github.com/wuancong/SYSU-MM01 | 待核对 | 待核对 | 待核对 / src/evaluate.py | E |
 | 评价交叉参考 | https://github.com/mangye16/Cross-Modal-Re-ID-baseline | 待核对 | 待核对 | eval_metrics.py / 尚未引入 | E |

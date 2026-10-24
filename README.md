@@ -2,13 +2,14 @@
 
 基于 **PMT（Progressive Modality-shared Transformer）**，研究平滑灰度过渡（S）与局部特征监督（L），在 SYSU-MM01 上完成受控消融与检索评价。
 
-> 当前为项目框架：已有目录、实验配置、接口约定与配置检查入口。数据读取、PMT 模型、训练和评价尚未实现，没有训练结果。配置中的数值来自本地设计提案，仍需核对作者实现。
+> 当前为项目框架：已有目录、实验配置、接口约定与配置检查入口。数据接口（A）已实现并通过合成数据自检，真实数据审计待运行；PMT 模型、训练和评价尚未实现，没有训练结果。配置中的数值来自本地设计提案，仍需核对作者实现。
 
 ## 项目入口
 
 - [完整设计与研究问题](010_Project_Design.md)
 - [本周进度与课堂汇报](011_Weekly_Checkpoint_Deliverables.md)
 - [工程架构与接口](docs/architecture.md)
+- [数据接口说明（A）](docs/data_interface.md)
 - [代码来源与复现差异登记](ATTRIBUTION.md)
 - [课程评分标准](COMP9444_Group_Project_Marking_Criteria.pdf)
 
@@ -36,19 +37,23 @@ configs/
   experiments/*.json         # V0/M0–M3/F/Q 的差异配置
 src/
   config.py                 # 配置加载、合并与检查（已实现）
-  data.py                   # A：manifest、划分、平衡采样（接口占位）
+  data.py                   # A：数据查找/下载、manifest、审计、PMT 兼容 P/K 采样（已实现）
   model.py, losses.py        # B：PMT 主干、原损失（接口占位）
   schedules.py              # C：灰度调度（接口占位）
   local_head.py             # D：局部监督（接口占位）
   train.py                  # B：训练/恢复（接口占位）
   evaluate.py, robustness.py # E：评价/扰动（接口占位）
 scripts/inspect_config.py    # 可直接运行的配置检查
+scripts/prepare_data.py      # A：一条命令准备数据（查找/下载、审计、接口检查）
+scripts/build_manifest.py    # A：manifest、划分、标签映射与数据审计
+scripts/check_data.py        # A：真实 batch、接口契约与采样统计
 docs/                       # 架构、接口与协作约定
 tests/                      # 后续模块正确性检查说明
 data/                       # 本地数据，不入 Git
 checkpoints/                # 预训练和训练权重，不入 Git
 artifacts/manifests/         # 本地数据/划分/gallery 清单，不入 Git
 artifacts/results/          # 本地运行证据，不入 Git
+notebooks/                  # 开发用 notebook（提交前清空输出）
 submission/                 # 最终 Notebook、报告与展示的交付说明
 ```
 
@@ -69,7 +74,20 @@ python scripts/inspect_config.py --experiment M3
 
 ## 数据与评价约定
 
-数据放在 `data/SYSU-MM01/`，包含 `cam1`–`cam6` 与 `exp`；路径可在配置中更改。下载来源见设计文档，数据尚未下载或审计。
+数据由 A 的数据接口自动准备：有数据就直接用，没有就从课程 Kaggle 镜像下载，然后生成 manifest、审计并检查训练接口。详见 [数据接口说明](docs/data_interface.md)。
+
+```bash
+pip install numpy pillow torch torchvision kagglehub
+python scripts/prepare_data.py              # 查找/下载数据 → manifest 与审计 → 真实 batch 检查
+python -m pytest tests/test_data.py -q      # 合成数据自检，不需要真实数据
+```
+
+B 取训练数据只需：
+
+```python
+from src.data import get_train_loader
+loader, sampler, dataset, label_map = get_train_loader("M0")   # final=True 用 train+val 395 身份
+```
 
 - RGB cameras：1/2/4/5；IR cameras：3/6。
 - 开发：296 身份训练、99 身份验证；96 身份测试集保留，不用于调参。
@@ -100,7 +118,8 @@ python scripts/inspect_config.py --experiment M3
 
 - [x] 项目目录、配置模板与 README。
 - [ ] 锁定作者代码版本、许可证与训练依赖。
-- [ ] 数据审计、采样器、评价器正确性验证。
+- [x] 数据接口与采样器（合成数据自检通过）。
+- [ ] 真实数据审计与真实 batch；评价器正确性验证。
 - [ ] 本组实际训练的 M0 baseline。
 - [ ] S/L 模块、M0–M3 消融与 F/Q 控制。
 - [ ] 最终冻结配置训练、鲁棒性与错误分析。
