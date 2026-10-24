@@ -21,11 +21,51 @@ python scripts/prepare_data.py
 全部通过时退出码为 0，并打印 B 的调用方式。常用参数：`--root <已有数据目录>`、`--no-download`、`--skip-checks`（只准备数据，不需要 torch）、`--num-workers 0`（默认值，Windows 上更稳）。
 
 ### B：取训练数据（两行）
-
+1. 有用的
 ```python
 from src.data import get_train_loader
 loader, sampler, dataset, label_map = get_train_loader("M0")   # 开发阶段：train 296 身份
 num_classes = len(label_map)
+```
+
+2. 解释
+(test)在 (.venv) 窗口、9444_project 目录下输入 python，进入 Python 后逐行粘贴：
+
+```python
+from src.data import get_train_loader
+loader, sampler, dataset, label_map = get_train_loader("M0", num_workers=0)
+print("类别数:", len(label_map), " 每轮步数:", len(loader))
+
+sampler.set_epoch(0)
+batch = next(iter(loader))        # 从发牌机取一手牌
+print(batch.keys())
+print(batch["images"].shape)      # 64 张图，每张 3×256×128
+print(batch["identities"][:8])    # 前 8 张是谁（原始编号）
+print(batch["modalities"])        # 0=RGB，1=IR：前 32 个是 0，后 32 个是 1
+```
+
+你会看到：
+
+类别数是 296，每轮 633 步。
+images 的形状是 [64, 3, 256, 128]。
+modalities 前一半全是 0，后一半全是 1。
+
+这就是 B 每一步训练拿到的东西。
+
+3. B 的训练代码大概长这样
+
+```python
+loader, sampler, dataset, label_map = get_train_loader("M0")
+model = 建模型(类别数=len(label_map))
+
+for epoch in range(24):
+    sampler.set_epoch(epoch)                              # 告诉发牌机第几轮
+    sampler.set_gray_probability(1.0 if epoch < 6 else 0.0)  # 前 6 轮 RGB 转灰度
+    for batch in loader:
+        输出 = model(batch["images"])
+        损失 = 计算损失(输出, batch["labels"])
+        ...
+
 ```
 
 第一次调用时如果还没准备数据，会自动完成第 1 步中的 1–3（不做接口检查）；审计未通过会报错，不给出训练数据。最终阶段用 `get_train_loader("M0", final=True)`（train+val 395 身份）。其余参数原样传给 `build_train_loader`，例如 `num_workers=8`、`seed=42`。
