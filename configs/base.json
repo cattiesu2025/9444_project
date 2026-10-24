@@ -1,0 +1,91 @@
+{
+  "status": "proposal_not_training_ready",
+  "experiment": "M0",
+  "owner": "B",
+  "data": {
+    "root": "data/SYSU-MM01",
+    "train_split": "train",
+    "evaluation_split": "val",
+    "train_identities": 296,
+    "validation_identities": 99,
+    "test_identities": 96,
+    "rgb_cameras": [
+      1,
+      2,
+      4,
+      5
+    ],
+    "ir_cameras": [
+      3,
+      6
+    ]
+  },
+  "model": {
+    "backbone": "ViT-B/16",
+    "image_size": [
+      256,
+      128
+    ],
+    "patch_size": 16,
+    "patch_stride": 12,
+    "global_feature_dim": 768,
+    "retrieval_feature": "global_only"
+  },
+  "training": {
+    "seeds": [
+      17,
+      42,
+      2026
+    ],
+    "epochs": 24,
+    "stage1_epochs": 6,
+    "identities_per_batch": 8,
+    "images_per_identity_per_modality": 4,
+    "optimizer": "AdamW",
+    "learning_rate": 0.0003,
+    "weight_decay": 0.0001,
+    "lr_schedule": "cosine",
+    "amp": null
+  },
+  "loss": {
+    "method": "PMT",
+    "msel_weight": 0.5,
+    "dcl_weight": 0.5,
+    "triplet_margin": 0.1
+  },
+  "smooth": {
+    "mode": "off",
+    "window_epochs": 3,
+    "initial_probability": 1.0
+  },
+  "local": {
+    "enabled": false,
+    "regions": 2,
+    "weight": 0.5
+  },
+  "evaluation": {
+    "direction": "IR-to-RGB",
+    "search": "all",
+    "shot": "single",
+    "gallery_seeds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "primary_metric": "mAP",
+    "feature_normalization": null,
+    "distance": null
+  },
+  "provenance": {
+    "upstream_commit": null,
+    "pretrained_sha256": null,
+    "environment_lock": null
+  }
+}

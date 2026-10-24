@@ -1,0 +1,10 @@
+{
+  "experiment": "M3",
+  "owner": "D",
+  "smooth": {
+    "mode": "linear"
+  },
+  "local": {
+    "enabled": true
+  }
+}

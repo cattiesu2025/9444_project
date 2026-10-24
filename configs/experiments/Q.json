@@ -1,0 +1,11 @@
+{
+  "experiment": "Q",
+  "owner": "A",
+  "training": {
+    "seeds": [
+      17
+    ],
+    "identities_per_batch": 16,
+    "images_per_identity_per_modality": 2
+  }
+}

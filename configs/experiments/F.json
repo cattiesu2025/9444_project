@@ -1,0 +1,12 @@
+{
+  "experiment": "F",
+  "owner": "C",
+  "training": {
+    "seeds": [
+      17
+    ]
+  },
+  "smooth": {
+    "mode": "fixed_expected_exposure"
+  }
+}

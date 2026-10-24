@@ -1,0 +1,15 @@
+{
+  "experiment": "V0",
+  "owner": "B",
+  "training": {
+    "seeds": [
+      17
+    ],
+    "stage1_epochs": 0
+  },
+  "loss": {
+    "method": "ID+global_hard_triplet",
+    "msel_weight": 0.0,
+    "dcl_weight": 0.0
+  }
+}
