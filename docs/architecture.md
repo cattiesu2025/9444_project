@@ -1,6 +1,6 @@
 # 工程架构与接口
 
-本文件将设计文档第 9 节落到实际目录；算法模块目前只有职责说明。`src/local_head.py` 独立于 B 的 `src/model.py`，便于 D 独立开发，后续由模型适配器接入。
+本文件将设计文档第 9 节落到实际目录；B 的模型、损失、训练恢复和导出已实现；C/D/E 模块仍按各自分工接入。`src/local_head.py` 独立于 B 的 `src/model.py`，便于 D 独立开发，后续由模型适配器接入。
 
 ## 数据流
 
@@ -16,9 +16,9 @@ manifest + 固定 gallery → evaluate → metrics → 图表/Notebook
                          robustness
 ```
 
-配置采用 JSON 深度合并：字典递归覆盖，标量和列表整体替换；实验文件只记录相对 base 的差异。所有配置都是开发提案，不代表训练器已支持。最终 395 身份配置需在开发配置冻结后另建，不能仅切换 evaluation split。
+配置采用 JSON 深度合并：字典递归覆盖，标量和列表整体替换；实验文件只记录相对 base 的差异。B 的训练器支持 M0/V0，其他扩展配置仍待各负责人接入。最终 395 身份配置需在开发配置冻结后另建，不能仅切换 evaluation split。
 
-## 共同接口（待各模块实现）
+## 共同接口
 
 | 接口 | 必需字段与约束 |
 | --- | --- |
@@ -48,3 +48,7 @@ manifest + 固定 gallery → evaluate → metrics → 图表/Notebook
 5. E 从原始证据生成汇总，所有人提供自己的技术章节。
 
 不得将空模块、配置检查、模拟张量或作者权重验证写成已训练结果。
+
+## B 已实现接口
+
+`PMT(num_classes, model_config, pretrained=None)` 的 forward 始终返回字典；`global_feature` 为 BN 前 CLS，`retrieval_feature` 为 BN 后 L2，`patch_features` 不含 CLS，`patch_grid` 来自卷积输出。局部字段为 None。`python -m src.train` 训练 M0/V0，`python -m src.export_features` 导出验证集。详见 [baseline.md](baseline.md)。

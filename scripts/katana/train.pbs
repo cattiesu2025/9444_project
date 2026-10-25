@@ -1,0 +1,48 @@
+#!/bin/bash
+#PBS -N pmt-baseline
+#PBS -l select=1:ncpus=4:mem=32gb:ngpus=1
+#PBS -l walltime=02:00:00
+#PBS -j oe
+
+# Submit from the project directory. Resource/queue availability must be checked
+# on Katana; this template has not yet been executed there.
+set -euo pipefail
+cd "${PBS_O_WORKDIR:?Submit qsub from the project directory}"
+: "${RUN_ID:?Pass -v RUN_ID=dev_M0_seed17_smoke,MAX_STEPS=2}"
+if [[ -n "${PMT_ENV_SETUP:-}" ]]; then
+    source "$PMT_ENV_SETUP"
+fi
+PMT_PYTHON="${PMT_PYTHON:-$PWD/.venv/bin/python}"
+export OMP_NUM_THREADS=4
+export MKL_NUM_THREADS=4
+export PYTHONUNBUFFERED=1
+export CUBLAS_WORKSPACE_CONFIG=:4096:8
+
+JOB_EVIDENCE="$PWD/artifacts/results/katana_jobs/${PBS_JOBID:?}"
+mkdir -p "$JOB_EVIDENCE"
+hostname > "$JOB_EVIDENCE/hostname.txt"
+nvidia-smi > "$JOB_EVIDENCE/nvidia-smi.txt"
+"$PMT_PYTHON" -c 'import importlib.metadata as m; print("\n".join(sorted(d.metadata["Name"] + "==" + d.version for d in m.distributions())))' > "$JOB_EVIDENCE/requirements-lock.txt"
+"$PMT_PYTHON" -c 'import torch; assert torch.cuda.is_available(), "CUDA PyTorch/GPU unavailable"; print(torch.__version__, torch.version.cuda, torch.cuda.get_device_name(0))'
+
+if [[ "${CHECKS:-0}" == 1 ]]; then
+    "$PMT_PYTHON" -m pytest tests/test_data.py tests/test_baseline.py -q
+    "$PMT_PYTHON" scripts/prepare_data.py --no-download --num-workers 0
+    "$PMT_PYTHON" scripts/prepare_pretrained.py
+fi
+
+# No downloads on compute nodes. Prepare the dataset and initialization first.
+ARGS=(--experiment "${EXPERIMENT:-M0}" --run-id "$RUN_ID" --device cuda --num-workers 4 --seed "${SEED:-17}")
+if [[ -n "${SYSU_MM01_ROOT:-}" ]]; then ARGS+=(--root "$SYSU_MM01_ROOT"); fi
+if [[ -n "${PMT_PRETRAINED:-}" ]]; then ARGS+=(--pretrained "$PMT_PRETRAINED"); fi
+if [[ "${ACTIVATION_CHECKPOINTING:-0}" == 1 ]]; then ARGS+=(--activation-checkpointing); fi
+if [[ "${RESUME:-0}" == 1 ]]; then ARGS+=(--resume "checkpoints/$RUN_ID/last.pt"); fi
+# Two-batch preflight by default. MAX_STEPS=0 runs all remaining epochs.
+if [[ "${MAX_STEPS:-2}" != 0 ]]; then ARGS+=(--max-steps "${MAX_STEPS:-2}"); fi
+"$PMT_PYTHON" -m src.train "${ARGS[@]}"
+
+# Full runs hand both validation modalities to E after training completes.
+if [[ "${MAX_STEPS:-2}" == 0 && "${EXPORT_ON_COMPLETE:-1}" == 1 ]]; then
+    "$PMT_PYTHON" -m src.export_features --checkpoint "checkpoints/$RUN_ID/last.pt" --modality ir --output "artifacts/results/$RUN_ID/query_val.npz" --device cuda --batch-size 64
+    "$PMT_PYTHON" -m src.export_features --checkpoint "checkpoints/$RUN_ID/last.pt" --modality rgb --output "artifacts/results/$RUN_ID/gallery_pool_val.npz" --device cuda --batch-size 64
+fi

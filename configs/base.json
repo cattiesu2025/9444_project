@@ -1,5 +1,5 @@
 {
-  "status": "proposal_not_training_ready",
+  "status": "implemented_pending_real_training",
   "experiment": "M0",
   "owner": "B",
   "data": {
@@ -30,7 +30,13 @@
     "patch_size": 16,
     "patch_stride": 12,
     "global_feature_dim": 768,
-    "retrieval_feature": "global_only"
+    "retrieval_feature": "global_only",
+    "depth": 12,
+    "heads": 12,
+    "dropout": 0.03,
+    "attention_dropout": 0.0,
+    "drop_path": 0.1,
+    "activation_checkpointing": false
   },
   "training": {
     "seeds": [
@@ -46,7 +52,11 @@
     "learning_rate": 0.0003,
     "weight_decay": 0.0001,
     "lr_schedule": "cosine",
-    "amp": null
+    "amp": true,
+    "pretrained_lr_factor": 0.5,
+    "warmup_epochs": 3,
+    "warmup_lr_factor": 0.01,
+    "min_lr_factor": 0.01
   },
   "loss": {
     "method": "PMT",
@@ -81,12 +91,12 @@
       9
     ],
     "primary_metric": "mAP",
-    "feature_normalization": null,
-    "distance": null
+    "feature_normalization": "l2_after_bn",
+    "distance": "negative_cosine_similarity"
   },
   "provenance": {
-    "upstream_commit": null,
+    "upstream_commit": "0b31da97b06428473bc4a1134b322ea226340818",
     "pretrained_sha256": null,
-    "environment_lock": null
+    "environment_lock": "requirements-lock.txt"
   }
 }

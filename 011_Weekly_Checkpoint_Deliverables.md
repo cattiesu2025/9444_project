@@ -140,12 +140,12 @@ E 自己检查评价正确性，不设其他成员的审批环节；上游数据
 
 ## 10. 本周进度记录（课堂汇报用）
 
-当前已建立工程框架；模型、训练和评价尚未实现，没有实验指标。各成员根据实际完成情况更新，未执行事项不记为完成。
+数据接口和 B 的 baseline 实现、自检已具备；已完成本地真实数据 3 步短跑及断点恢复；正式 Katana 训练及 E 的评价仍待执行，没有检索指标。实现检查与真实训练分开记录。
 
 | 成员 | 已完成与证据路径 | 当前问题 | 下一步 |
 | --- | --- | --- | --- |
-| A | 数据接口 `src/data.py`（数据查找/自动下载、manifest、官方划分、标签映射、PMT 兼容 P/K 采样、灰度开关、评价数据集；B 用 `get_train_loader("M0")` 一行取数据）；一条命令 `scripts/prepare_data.py`；合成数据自检 30 项通过（`tests/test_data.py`）；接口说明 `docs/data_interface.md` | 真实数据审计与真实 batch 尚待在下载数据后运行 | 下载数据并运行两条脚本，记录审计结论；EDA 初稿 |
-| B | 待填写 | 待填写 | 锁定上游版本与环境，实现 baseline |
+| A | 数据接口 `src/data.py`（数据查找/自动下载、manifest、官方划分、标签映射、PMT 兼容 P/K 采样、灰度开关、评价数据集；B 用 `get_train_loader("M0")` 一行取数据）；一条命令 `scripts/prepare_data.py`；合成数据自检 30 项通过（`tests/test_data.py`）；接口说明 `docs/data_interface.md` | B 已在本机复跑 A 的真实数据审计与 batch 检查，全部通过：`artifacts/manifests/data_audit.md`、`artifacts/results/data_check/check_report.md`；EDA 仍待补齐 | EDA 初稿 |
+| B | 完整模型/损失/训练恢复/特征导出；真实数据短跑 3 步（先 2 步再恢复 1 步），日志/权重及 val 特征（IR 1980 / RGB 1974）见 `local_M0_mps_smoke_seed17`；A+B 48 项自检；27 组上游损失梯度对照、主干前向及 24 epoch 学习率通过；`docs/baseline.md`、`tests/test_baseline.py`、`scripts/check_pmt_reference.py` | 本地无 CUDA，沙箱外可用 MPS；Katana SSH 已连通、独立 CUDA 环境已安装，H200 设备探测成功；GPU 检查作业 9609832 已排队；正式训练 9609976 依赖其成功后执行，尚无正式结果 | 准备真实数据与初始化，在 Katana 跑 2 步检查后恢复完成 24 epochs，交权重与导出结果给 E |
 | C | 待填写 | 待填写 | 灰度调度模块与边界检查 |
 | D | 待填写 | 待填写 | 局部头与网格/梯度检查 |
 | E | 待填写 | 待填写 | 手算指标与评价协议核验 |

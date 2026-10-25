@@ -3,4 +3,12 @@
 各负责人实现模块时加入有意义的检查：A 身份隔离及 P/K batch；B 损失、小样本下降、阶段与恢复；C 窗口首尾/期望暴露量/恢复；D 非正方形网格/梯度；E 手算 AP/CMC、摄像头排除与参考实现交叉验证。框架阶段不将配置检查当作模型正确性测试。
 
 
-已实现：`test_data.py`（A，30 项，使用 `synthetic_sysu.py` 生成的合成目录，不需要真实数据）。运行 `python -m pytest tests/test_data.py -q`。
+已实现：`test_data.py`（A，当前参数化共 32 项，使用 `synthetic_sysu.py` 生成的合成目录，不需要真实数据）。运行 `python -m pytest tests/test_data.py -q`。
+
+
+## B baseline（2026-10-25）
+
+`python -m pytest tests/test_baseline.py -q`：16 项通过；与 A 联合运行共 48 项通过。
+覆盖激活检查点与普通前反向的逐位一致性、小批拟合下降、手算 MSEL/DCL、两阶段/V0 梯度、退化 DCL、布局拒绝、非正方形 patch 网格、严格预训练加载、阶段边界、学习率、完整 RNG/优化状态恢复和导出。用模拟 SYSU 图片+小模型运行完整训练入口，比较中途恢复与连续训练跨阶段后的最终参数（逐位相同）。这些自检不是本组真实训练结果。
+
+`python scripts/check_pmt_reference.py /path/to/PMT`：验证固定上游 commit；比较 backbone 前向、3 种 P/K×3 seeds×3 losses 的值和梯度，以及 24 epochs 学习率。报告写入 `artifacts/results/baseline_checks/reference.json`。

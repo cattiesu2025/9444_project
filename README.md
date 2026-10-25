@@ -2,7 +2,7 @@
 
 基于 **PMT（Progressive Modality-shared Transformer）**，研究平滑灰度过渡（S）与局部特征监督（L），在 SYSU-MM01 上完成受控消融与检索评价。
 
-> 当前为项目框架：已有目录、实验配置、接口约定与配置检查入口。数据接口（A）已实现并通过合成数据自检，真实数据审计待运行；PMT 模型、训练和评价尚未实现，没有训练结果。配置中的数值来自本地设计提案，仍需核对作者实现。
+> 数据接口（A）与 PMT baseline 实现（B）已具备，A+B 共 48 项自检通过；B 已核对固定作者版本的模型、损失与学习率。已完成真实数据 3 步短跑与恢复；正式 Katana 训练及 E 的评价尚待执行，目前没有检索指标。详见 [B 的方法与运行说明](docs/baseline.md)。
 
 ## 项目入口
 
@@ -10,6 +10,7 @@
 - [本周进度与课堂汇报](011_Weekly_Checkpoint_Deliverables.md)
 - [工程架构与接口](docs/architecture.md)
 - [数据接口说明（A）](docs/data_interface.md)
+- [PMT baseline 说明与 Katana 运行（B）](docs/baseline.md)
 - [代码来源与复现差异登记](ATTRIBUTION.md)
 - [课程评分标准](COMP9444_Group_Project_Marking_Criteria.pdf)
 
@@ -38,10 +39,11 @@ configs/
 src/
   config.py                 # 配置加载、合并与检查（已实现）
   data.py                   # A：数据查找/下载、manifest、审计、PMT 兼容 P/K 采样（已实现）
-  model.py, losses.py        # B：PMT 主干、原损失（接口占位）
+  model.py, losses.py        # B：PMT 主干、原损失（已实现）
   schedules.py              # C：灰度调度（接口占位）
   local_head.py             # D：局部监督（接口占位）
-  train.py                  # B：训练/恢复（接口占位）
+  train.py, training.py     # B：训练/完整恢复（已实现）
+  export_features.py        # B：BN后归一化特征与元数据导出
   evaluate.py, robustness.py # E：评价/扰动（接口占位）
 scripts/inspect_config.py    # 可直接运行的配置检查
 scripts/prepare_data.py      # A：一条命令准备数据（查找/下载、审计、接口检查）
@@ -70,7 +72,7 @@ python scripts/inspect_config.py --experiment M3
 
 以上 clone 命令适用于框架提交并推送后。已有本地项目无需再次 clone。配置检查仅依赖 Python 标准库（Python ≥3.10），输出合并配置，不下载数据、不训练模型。`--experiment` 支持表中所有实验 ID。
 
-深度学习环境由 B 在核对作者 commit 和 GPU 环境后锁定 Python、PyTorch、CUDA 与其余依赖，并提交真实的 `requirements-lock.txt`；目前未提供未经验证的训练依赖组合。本机能检查框架不代表能运行训练。训练入口完成后在本节补充经实际验证的训练、恢复、特征导出与评价命令。
+本地已验证环境见 `requirements-lock.txt`（Python 3.11.15、PyTorch 2.14.1，macOS ARM）；Katana CUDA 环境需在实际计算节点另行验证和锁定。模型/损失、训练/恢复与导出命令见 [baseline.md](docs/baseline.md)，PBS 模板为 `scripts/katana/train.pbs`。测试通过不表示已完成真实训练。
 
 ## 数据与评价约定
 
@@ -119,7 +121,9 @@ loader, sampler, dataset, label_map = get_train_loader("M0")   # final=True 用 
 - [x] 项目目录、配置模板与 README。
 - [ ] 锁定作者代码版本、许可证与训练依赖。
 - [x] 数据接口与采样器（合成数据自检通过）。
-- [ ] 真实数据审计与真实 batch；评价器正确性验证。
+- [x] 本机真实数据审计与真实 batch 检查。
+- [x] B 的模型、损失、训练恢复和导出实现；真实数据 3 步短跑。
+- [ ] 评价器正确性验证（E）。
 - [ ] 本组实际训练的 M0 baseline。
 - [ ] S/L 模块、M0–M3 消融与 F/Q 控制。
 - [ ] 最终冻结配置训练、鲁棒性与错误分析。
@@ -129,4 +133,4 @@ loader, sampler, dataset, label_map = get_train_loader("M0")   # final=True 用 
 
 ## 来源
 
-研究路线依据本仓库设计文档；主要外部来源为 [PMT 作者仓库](https://github.com/hulu88/PMT)、[PMT 论文](https://arxiv.org/abs/2212.00226) 和 [SYSU-MM01](https://github.com/wuancong/SYSU-MM01)。尚未导入第三方代码，具体 commit、许可证及修改记录见 [ATTRIBUTION.md](ATTRIBUTION.md)。
+研究路线依据本仓库设计文档；主要外部来源为 [PMT 作者仓库](https://github.com/hulu88/PMT)、[PMT 论文](https://arxiv.org/abs/2212.00226) 和 [SYSU-MM01](https://github.com/wuancong/SYSU-MM01)。A 的数据增强已有第三方来源；B 按固定作者版本核对并独立实现。具体 commit、许可证及修改记录见 [ATTRIBUTION.md](ATTRIBUTION.md)。
