@@ -140,14 +140,20 @@ E 自己检查评价正确性，不设其他成员的审批环节；上游数据
 
 ## 10. 本周进度记录（课堂汇报用）
 
-数据接口和 B 的 baseline 实现、自检已具备；已完成 Katana M0 seed17 的24 epochs 训练、断点恢复和验证集特征导出；E 的评价待执行，没有检索指标。实现检查与真实训练分开记录。
+**当前进度：** 数据接口已就绪，M0 baseline 已完成 24 epochs 训练及验证集特征导出；检索评价待完成。
 
-| 成员 | 已完成与证据路径 | 当前问题 | 下一步 |
-| --- | --- | --- | --- |
-| A | 数据接口 `src/data.py`（数据查找/自动下载、manifest、官方划分、标签映射、PMT 兼容 P/K 采样、灰度开关、评价数据集；B 用 `get_train_loader("M0")` 一行取数据）；一条命令 `scripts/prepare_data.py`；合成数据自检 30 项通过（`tests/test_data.py`）；接口说明 `docs/data_interface.md` | B 已在本机复跑 A 的真实数据审计与 batch 检查，全部通过：`artifacts/manifests/data_audit.md`、`artifacts/results/data_check/check_report.md`；EDA 仍待补齐 | EDA 初稿 |
-| B | M0 seed17 在 Katana L40S 完成24 epochs；日志、配置、val特征（IR1980 / RGB1974）见 `artifacts/results/dev_M0_seed17_katana_20261025_retry1/`，权重见同名 `checkpoints/`；50项测试与交付核验通过；说明 `docs/baseline.md` | 原 AMP 溢出导致依赖取消已修复；新作业9610321与9610322退出码均为0；尚无检索指标 | E 使用最终权重及特征执行固定评价协议 |
-| C | 待填写 | 待填写 | 灰度调度模块与边界检查 |
-| D | 待填写 | 待填写 | 局部头与网格/梯度检查 |
-| E | 待填写 | 待填写 | 手算指标与评价协议核验 |
+| 成员 | 已完成 | 待完成 | 下一步 |
+| :---: | --- | --- | --- |
+| A | 数据接口、采样器与真实数据检查 | EDA | 补充数据分析与样例 |
+| B | M0 seed17 训练、恢复与特征导出 | 配合 baseline 复评 | 支持 E 使用权重与特征 |
+| C | 待填写 | 待填写 | 灰度调度与边界检查 |
+| D | 待填写 | 待填写 | 局部头与网格、梯度检查 |
+| E | 待填写 | 检索指标 | 核验评价协议并复评 M0 |
+
+### 证据与说明
+
+- **A：** [数据接口说明](docs/data_interface.md)、[数据准备入口](scripts/prepare_data.py)。真实数据审计及 batch 检查均通过；本地记录见 `artifacts/manifests/data_audit.md` 和 `artifacts/results/data_check/check_report.md`。
+- **B：** [baseline 运行说明](docs/baseline.md)、[整合 Notebook](submission/project.ipynb)。Katana L40S 完成 M0 seed17 的 24 epochs；A+B 共 50 项测试及交付核验通过，已导出 IR 1,980 条、RGB 1,974 条验证特征。
+- **B 的本地交付：** 日志、配置与特征位于 `artifacts/results/dev_M0_seed17_katana_20261025_retry1/`；权重位于同名 `checkpoints/` 目录。AMP 问题已修复，正式作业成功结束；目前没有检索指标。
 
 **全组讨论：** 待实际讨论后填写；有指标时注明 run_id、训练进度、评价 split 和原始记录位置。
