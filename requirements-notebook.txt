@@ -1,0 +1,5 @@
+# Notebook authoring / clean-kernel validation; training dependencies remain in their original locks.
+nbformat==5.11.1
+nbclient==0.11.0
+nbconvert==7.17.2
+ipykernel==7.4.0

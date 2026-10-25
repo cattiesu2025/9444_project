@@ -5,10 +5,10 @@
 #PBS -j oe
 
 # Submit from the project directory. Resource/queue availability must be checked
-# on Katana; this template has not yet been executed there.
+# on Katana; verified on L40S with the recorded Python/CUDA environment.
 set -euo pipefail
 cd "${PBS_O_WORKDIR:?Submit qsub from the project directory}"
-: "${RUN_ID:?Pass -v RUN_ID=dev_M0_seed17_smoke,MAX_STEPS=2}"
+: "${RUN_ID:?Pass -v RUN_ID=dev_M0_seed17_smoke,MAX_STEPS=20}"
 if [[ -n "${PMT_ENV_SETUP:-}" ]]; then
     source "$PMT_ENV_SETUP"
 fi
@@ -37,12 +37,12 @@ if [[ -n "${SYSU_MM01_ROOT:-}" ]]; then ARGS+=(--root "$SYSU_MM01_ROOT"); fi
 if [[ -n "${PMT_PRETRAINED:-}" ]]; then ARGS+=(--pretrained "$PMT_PRETRAINED"); fi
 if [[ "${ACTIVATION_CHECKPOINTING:-0}" == 1 ]]; then ARGS+=(--activation-checkpointing); fi
 if [[ "${RESUME:-0}" == 1 ]]; then ARGS+=(--resume "checkpoints/$RUN_ID/last.pt"); fi
-# Two-batch preflight by default. MAX_STEPS=0 runs all remaining epochs.
-if [[ "${MAX_STEPS:-2}" != 0 ]]; then ARGS+=(--max-steps "${MAX_STEPS:-2}"); fi
+# Twenty-batch preflight allows AMP scale calibration. MAX_STEPS=0 runs all remaining epochs.
+if [[ "${MAX_STEPS:-20}" != 0 ]]; then ARGS+=(--max-steps "${MAX_STEPS:-20}"); fi
 "$PMT_PYTHON" -m src.train "${ARGS[@]}"
 
 # Full runs hand both validation modalities to E after training completes.
-if [[ "${MAX_STEPS:-2}" == 0 && "${EXPORT_ON_COMPLETE:-1}" == 1 ]]; then
+if [[ "${MAX_STEPS:-20}" == 0 && "${EXPORT_ON_COMPLETE:-1}" == 1 ]]; then
     "$PMT_PYTHON" -m src.export_features --checkpoint "checkpoints/$RUN_ID/last.pt" --modality ir --output "artifacts/results/$RUN_ID/query_val.npz" --device cuda --batch-size 64
     "$PMT_PYTHON" -m src.export_features --checkpoint "checkpoints/$RUN_ID/last.pt" --modality rgb --output "artifacts/results/$RUN_ID/gallery_pool_val.npz" --device cuda --batch-size 64
 fi

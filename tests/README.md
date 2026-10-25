@@ -8,7 +8,7 @@
 
 ## B baseline（2026-10-25）
 
-`python -m pytest tests/test_baseline.py -q`：16 项通过；与 A 联合运行共 48 项通过。
+`python -m pytest tests/test_baseline.py -q`：18 项通过；与 A 联合运行共 50 项通过（含 AMP 溢出恢复和 FP32 非有限梯度保护）。
 覆盖激活检查点与普通前反向的逐位一致性、小批拟合下降、手算 MSEL/DCL、两阶段/V0 梯度、退化 DCL、布局拒绝、非正方形 patch 网格、严格预训练加载、阶段边界、学习率、完整 RNG/优化状态恢复和导出。用模拟 SYSU 图片+小模型运行完整训练入口，比较中途恢复与连续训练跨阶段后的最终参数（逐位相同）。这些自检不是本组真实训练结果。
 
 `python scripts/check_pmt_reference.py /path/to/PMT`：验证固定上游 commit；比较 backbone 前向、3 种 P/K×3 seeds×3 losses 的值和梯度，以及 24 epochs 学习率。报告写入 `artifacts/results/baseline_checks/reference.json`。

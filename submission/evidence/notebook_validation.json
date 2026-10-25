@@ -1,0 +1,19 @@
+{
+  "verified_on": "2026-10-26",
+  "notebook_sha256": "7d21bf3a19145b84cf1303e76728fe6467e5fd75ffafef063ad0250cbb7728e1",
+  "nbformat": "PASS",
+  "isolated_clean_kernel": "PASS",
+  "project_clean_kernel": "PASS",
+  "executed_code_cells": 4,
+  "error_outputs": 0,
+  "main_sections": [
+    "## 1. Introduction, Motivation and Problem Statement",
+    "## 2. Data Sources",
+    "## 3. Exploratory Analysis of Data",
+    "## 4. Models and Methods",
+    "## 5. Results",
+    "## 6. Discussion"
+  ],
+  "html_export": "PASS",
+  "mode": "Saved measurements; no training or download"
+}

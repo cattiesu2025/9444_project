@@ -6,10 +6,10 @@
 
 - 已实现：共享 ViT-B/16、重叠 patch、BN neck、ID/PHT/MSEL/DCL、M0 两阶段、V0 基础对照、AdamW、warmup/cosine、完整恢复、验证集特征导出。
 - 本地 Python 3.11.15 / PyTorch 2.14.1 / torchvision 0.29.1，macOS ARM；沙箱内检测不到 CUDA/MPS，沙箱外确认可用 Apple MPS，统一内存 16GB；无 CUDA。完整依赖见 `requirements-lock.txt`，这是已测试的本地环境锁，不是已验证的 Katana CUDA 环境。
-- A+B 测试 48 项通过。上游对照：主干前向、27 组损失数值/梯度、24 个 epoch 的各参数组学习率通过。小模型真实数据接口的模拟图像测试覆盖中途恢复及阶段边界，恢复后参数与连续运行逐位一致。
-- ImageNet 初始化已下载并校验，完整 ViT-B 严格加载及前反向已通过；本机真实 SYSU 数据审计及接口检查均 PASS（45,863 图片、296 train IDs、633 steps/epoch）；尚无完整 24-epoch 训练或检索指标。
+- A+B 测试 50 项通过（本地及 Katana 均通过）。上游对照：主干前向、27 组损失数值/梯度、24 个 epoch 的各参数组学习率通过。小模型真实数据接口的模拟图像测试覆盖中途恢复及阶段边界，恢复后参数与连续运行逐位一致。
+- ImageNet 初始化已下载并校验，完整 ViT-B 严格加载及前反向已通过；本机真实 SYSU 数据审计及接口检查均 PASS（45,863 图片、296 train IDs、633 steps/epoch）；Katana 已完成 M0 seed17 的 24-epoch 训练；尚无检索指标。
 - 本地真实训练联调已完成：`local_M0_mps_smoke_seed17`，先 2 步、恢复后再 1 步，总计 3/633 个第一阶段 batch；FP32 MPS＋激活检查点，P=8/K=4 未变。日志、权重和 summary 已保存，status=`partial`，没有跑到第二阶段。
-- 正式训练目标为 Katana。SSH 别名 `katana` / `kdm` 已验证可用。远端项目为 `/srv/scratch/z5535967/9444_project`，独立环境为 `/srv/scratch/z5535967/venvs/pmt-py311`。H200 设备探测作业 `9609590` 成功（k201，驱动 610.43.02）；PyTorch 2.14.1+cu130 已安装，实际训练检查待运行。
+- 正式训练目标为 Katana。SSH 别名 `katana` / `kdm` 已验证可用。远端项目为 `/srv/scratch/z5535967/9444_project`，独立环境为 `/srv/scratch/z5535967/venvs/pmt-py311`。H200 设备探测作业 `9609590` 成功（k201，驱动 610.43.02）；PyTorch 2.14.1+cu130 已安装，L40S 检查及正式训练已成功完成。
 
 ## 方法与来源核对
 
@@ -54,8 +54,8 @@ Katana 应重新建立 Linux Python 环境，不可复制 macOS `.venv`。选用
 ## 训练、恢复与交付
 
 ```bash
-# 先用真实数据做 2 个 batch，之后从同一状态继续；不改变24 epoch配置。
-python -m src.train --experiment M0 --run-id dev_M0_seed17 --device cuda --num-workers 4 --max-steps 2
+# 先用真实数据做 20 个 batch（允许 AMP scale 调整），之后从同一状态继续；不改变24 epoch配置。
+python -m src.train --experiment M0 --run-id dev_M0_seed17 --device cuda --num-workers 4 --max-steps 20
 python -m src.train --run-id dev_M0_seed17 --device cuda --num-workers 4 --resume checkpoints/dev_M0_seed17/last.pt
 ```
 
@@ -86,7 +86,7 @@ python -m src.export_features --checkpoint checkpoints/dev_M0_seed17/last.pt --s
 ssh z5535967@katana.restech.unsw.edu.au
 cd /实际项目目录/9444_project
 # 数据、权重、CUDA虚拟环境已准备后，先提交2步检查。
-qsub -v RUN_ID=dev_M0_seed17,MAX_STEPS=2 scripts/katana/train.pbs
+qsub -v RUN_ID=dev_M0_seed17,MAX_STEPS=20 scripts/katana/train.pbs
 qstat -u z5535967
 # 检查日志及summary后继续同一run；按获准时限调整walltime。
 qsub -v RUN_ID=dev_M0_seed17,MAX_STEPS=0,RESUME=1 scripts/katana/train.pbs
@@ -116,14 +116,19 @@ python scripts/check_pmt_reference.py /tmp/pmt-reference
 SSH 已配置，源代码、45,863 张图片/官方划分和已校验初始化已部署至 `/srv/scratch/z5535967/9444_project`。未使用 Kaggle 的 train+val `.npy` 数组。专用环境 `/srv/scratch/z5535967/venvs/pmt-py311`，加载 `python/3.11.3`；Linux/CUDA 依赖见 `requirements-katana-lock.txt`。
 
 - H200 设备探测 `9609590`：成功，节点 k201，驱动 610.43.02。它只证明设备可用，不是训练结果。
-- GPU preflight `9609832`：申请 L40S / 4 CPU / 32GB / 30分钟，队列 `csegpu2`。先跑测试与真实数据审计，再进行两步训练；截至本次提交记录仍排队。
-- 完整训练 `9609976`：同一 run `dev_M0_seed17_katana_20261025`，L40S / 4 CPU / 32GB / 最长12小时，队列 `csegpu12`；依赖 `afterok:9609832`，因此当前 H 状态表示等待检查成功。检查失败不会启动。
-- 完整作业从两步 checkpoint 恢复，目标仍为总计24 epochs（不是额外24）；完成后自动导出 val IR/RGB 特征。AMP 与激活检查点启用；预留时限不是预估训练时长。
+- 原 GPU preflight `9609832`：测试与数据审计通过，但 AMP 首次反向传播溢出被旧代码直接判为致命错误，退出码 1；依赖它的 `9609976` 因 `afterok` 未满足而被 PBS 删除，未开始训练。
+- 修复：交由 GradScaler 跳过溢出更新并降低 scale；记录 `optimizer_updated` 与调整前后 scale，FP32 非有限梯度和连续16次 AMP 溢出仍终止；短跑若没有任何有效参数更新则失败。增加两项回归测试。
+- 新 preflight `9610321`：L40S，50项测试、真实数据检查与20个训练 batch 成功，退出码0。
+- 完整训练 `9610322`：同一 run `dev_M0_seed17_katana_20261025_retry1`，L40S / 4 CPU / 32GB，从20个 batch 的 checkpoint 恢复并完成总计24 epochs；退出码0，PBS walltime 00:57:53。AMP 与激活检查点启用。
+- 核验：15,192个 batch（第一阶段3,798、第二阶段11,394），15,184次有效更新，8次 AMP 溢出跳过。`global_step` 统计已消费 batch，不等于有效 optimizer 更新数；跳过后仍保留24 epochs 的数据遍历协议。
+- 最终权重 SHA256：`2f67383873ead9c0f11b593ee174510553d71bd13a611536a91335daaa9fc499`。
 
 ```bash
-ssh katana 'qstat -u z5535967'
-ssh katana 'tail -n 30 /srv/scratch/z5535967/9444_project/pmt-preflight.o9609832'
-ssh katana 'tail -n 30 /srv/scratch/z5535967/9444_project/pmt-M0-seed17.o9609976'
+ssh katana 'qstat -xf 9610321 9610322'
+ssh katana 'tail -n 30 /srv/scratch/z5535967/9444_project/pmt-preflight.o9610321'
+ssh katana 'tail -n 30 /srv/scratch/z5535967/9444_project/pmt-M0-seed17.o9610322'
 ```
 
-训练进度证据位于远端 `artifacts/results/dev_M0_seed17_katana_20261025/`；权重在 `checkpoints/dev_M0_seed17_katana_20261025/last.pt`。排队不表示已完成训练，本地3步联调与 Katana 正式 run 分开。提交登记：本地 `artifacts/results/katana_deployment.json`。
+训练证据目录：`artifacts/results/dev_M0_seed17_katana_20261025_retry1/`。包含 `config.json`、环境、`train.jsonl`、`summary.json`、IR `query_val.npz` 与 RGB `gallery_pool_val.npz` 及其 JSON 校验信息；本地已取回这些文件。`training_manifest.csv` 是远端实际 manifest 副本，勿覆盖本地 manifest。`delivery_validation.json` 记录24 epochs 连续性、有限损失、导出校验和、L2范数及逐行身份/摄像头/模态/路径核验 PASS。导出均为768维，IR 1,980条、RGB候选1,974条，各99身份。
+
+权重位于远端及本地的 `checkpoints/dev_M0_seed17_katana_20261025_retry1/last.pt`。E 可按固定 single-shot trials 从 RGB 候选池选择 gallery 并计算检索指标；当前没有计算 Rank-1/mAP，也没有使用 test split。提交登记见 `artifacts/results/katana_deployment.json`。本地3步短跑只作为联调证据，不代替本次正式权重。

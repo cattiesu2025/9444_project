@@ -2,7 +2,7 @@
 
 基于 **PMT（Progressive Modality-shared Transformer）**，研究平滑灰度过渡（S）与局部特征监督（L），在 SYSU-MM01 上完成受控消融与检索评价。
 
-> 数据接口（A）与 PMT baseline 实现（B）已具备，A+B 共 48 项自检通过；B 已核对固定作者版本的模型、损失与学习率。已完成真实数据 3 步短跑与恢复；正式 Katana 训练及 E 的评价尚待执行，目前没有检索指标。详见 [B 的方法与运行说明](docs/baseline.md)。
+> 数据接口（A）与 PMT baseline 实现（B）已具备，A+B 共 50 项自检通过。B 已在 Katana 完成 M0 seed17 的 24 epochs 训练并导出验证集特征，配置、日志和权重均已保存；E 的检索评价待执行，目前没有检索指标。详见 [B 的方法与运行说明](docs/baseline.md)。
 
 ## 项目入口
 
@@ -12,6 +12,8 @@
 - [数据接口说明（A）](docs/data_interface.md)
 - [PMT baseline 说明与 Katana 运行（B）](docs/baseline.md)
 - [代码来源与复现差异登记](ATTRIBUTION.md)
+- [整合 Notebook（baseline 已写入）](submission/project.ipynb)
+- [Notebook 结构与评分覆盖](submission/README.md)
 - [课程评分标准](COMP9444_Group_Project_Marking_Criteria.pdf)
 
 ## 研究路线
@@ -124,10 +126,11 @@ loader, sampler, dataset, label_map = get_train_loader("M0")   # final=True 用 
 - [x] 本机真实数据审计与真实 batch 检查。
 - [x] B 的模型、损失、训练恢复和导出实现；真实数据 3 步短跑。
 - [ ] 评价器正确性验证（E）。
-- [ ] 本组实际训练的 M0 baseline。
+- [x] 本组实际训练的 M0 baseline（seed17，24 epochs）。
 - [ ] S/L 模块、M0–M3 消融与 F/Q 控制。
 - [ ] 最终冻结配置训练、鲁棒性与错误分析。
-- [ ] 一个整合 Notebook、正文不超过 4 页的报告、全员展示。
+- [x] 整合 Notebook 结构与 baseline 章节（其余实验/评价仍待补齐）。
+- [ ] 最终完整 Notebook、正文不超过 4 页的报告、全员展示。
 
 内部目标为 2026-11-15 形成可提交版本，2026-11-18 是内部暂定截止日；正式日期以课程公告为准。
 
