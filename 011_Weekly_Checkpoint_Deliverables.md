@@ -135,7 +135,7 @@ E 自己检查评价正确性，不设其他成员的审批环节；上游数据
 - [ ] 全组：讨论初步结果，写清问题、限制与后续任务。
 - [ ] 汇总页区分已完成训练、阶段性结果、模块原型和未完成项。
 
-课堂 checkpoint 不单建目录或代码包。最终项目仍整合为一个 Notebook；`checkpoints/` 仅保存模型权重及断点恢复状态，内容不上传 Git。
+课堂 checkpoint 不单建目录或代码包。最终项目仍整合为一个 Notebook：[submission/project.ipynb](submission/project.ipynb)；`checkpoints/` 仅保存模型权重及断点恢复状态，内容不上传 Git。
 
 
 ## 10. 本周进度记录（课堂汇报用）
