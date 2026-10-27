@@ -1,11 +1,13 @@
 #!/bin/bash
 #PBS -N pmt-baseline
-#PBS -l select=1:ncpus=4:mem=32gb:ngpus=1
+#PBS -l select=1:ncpus=4:mem=32gb:ngpus=1:gpu_model=L40S
 #PBS -l walltime=02:00:00
 #PBS -j oe
 
 # Submit from the project directory. Resource/queue availability must be checked
 # on Katana; verified on L40S with the recorded Python/CUDA environment.
+# GPU is pinned to L40S: V100 is unsupported by the cu130 PyTorch build, and
+# mixing GPU models within or across runs changes numerics between experiments.
 set -euo pipefail
 cd "${PBS_O_WORKDIR:?Submit qsub from the project directory}"
 : "${RUN_ID:?Pass -v RUN_ID=dev_M0_seed17_smoke,MAX_STEPS=20}"
