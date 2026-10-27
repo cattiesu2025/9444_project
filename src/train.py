@@ -11,6 +11,7 @@ from .config import load_config
 from .data import get_train_loader, check_pmt_layout
 from .model import PMT
 from .losses import PMTLoss
+from .schedules import from_config
 from .training import (seed_all, make_optimizer, EpochSchedule, isolated_batches,
                        save_checkpoint, load_checkpoint, restore_training, sha256, scaled_optimizer_step)
 
@@ -47,8 +48,8 @@ def provenance(cfg, device, dataset, pretrained):
 def run(args):
     checkpoint = load_checkpoint(args.resume) if args.resume else None
     cfg = checkpoint["config"] if checkpoint else load_config(args.experiment)
-    if cfg["experiment"] not in ("M0", "V0") or cfg["smooth"]["mode"] != "off" or cfg["local"]["enabled"]:
-        raise ValueError("B's entry point supports M0/V0 only; C/D own extension integration")
+    if cfg["experiment"] not in ("M0", "V0", "M1", "F") or cfg["local"]["enabled"]:
+        raise ValueError("This entry point supports M0/V0/M1/F without local supervision")
     if checkpoint and checkpoint["run_id"] != args.run_id:
         raise ValueError("Resume requires the original --run-id")
     if not checkpoint and getattr(args, "activation_checkpointing", False):
@@ -70,6 +71,7 @@ def run(args):
         raise ValueError("Unexpected development identity count; verify A's audit")
     if len(loader) == 0:
         raise ValueError("No training batches")
+    gray_schedule = None if cfg["experiment"] == "V0" else from_config(cfg, sampler.batches_per_epoch)
     evidence = provenance(cfg, device, dataset, pretrained if not checkpoint else None)
     if checkpoint:
         if checkpoint["label_map"] != label_map or checkpoint["manifest_sha256"] != evidence["manifest_sha256"]:
@@ -122,8 +124,7 @@ def run(args):
             offset = start_batch if epoch == start_epoch else 0
             sampler.set_epoch(epoch, start_batch=offset)
             stage = stage_at(cfg, epoch)
-            probability = float(stage == 1)
-            sampler.set_gray_probability(probability)
+            sampler.set_gray_probability(0.0 if stage == "V0" else gray_schedule)
             scheduler.step(epoch + 1)
             model.train()
             for batch_index, batch in enumerate(isolated_batches(loader), start=offset):
@@ -150,6 +151,7 @@ def run(args):
                     torch.mps.synchronize()
                 global_step += 1
                 new_steps += 1
+                probability = 0.0 if stage == "V0" else gray_schedule(epoch * sampler.batches_per_epoch + batch_index)
                 record = {"epoch": epoch + 1, "batch": batch_index + 1, "global_step": global_step,
                           "stage": stage, "lr": sorted(set(g["lr"] for g in optimizer.param_groups)),
                           "p_gray": probability, "gray_count": int(batch["gray"].sum()),
@@ -175,7 +177,7 @@ def run(args):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--experiment", choices=("M0", "V0"), default="M0")
+    parser.add_argument("--experiment", choices=("M0", "V0", "M1", "F"), default="M0")
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--root")
     parser.add_argument("--pretrained")
