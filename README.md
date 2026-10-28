@@ -127,7 +127,7 @@ loader, sampler, dataset, label_map = get_train_loader("M0")   # final=True 用 
 - [x] 数据接口与采样器（合成数据自检通过）。
 - [x] 本机真实数据审计与真实 batch 检查。
 - [x] B 的模型、损失、训练恢复和导出实现；真实数据 3 步短跑。
-- [ ] 评价器正确性验证（E）。
+- [x] 评价器正确性验证（E）：手算自检 + PMT `eval_sysu`/`process_gallery_sysu` 对照通过；M0/M1/F seed17 已在内部 val 复评。
 - [x] 本组实际训练的 M0 baseline（seed17，24 epochs）。
 - [ ] S/L 模块、M0–M3 消融与 F/Q 控制。
 - [ ] 最终冻结配置训练、鲁棒性与错误分析。

@@ -45,8 +45,31 @@ python -m src.evaluate summarize --metrics run17/eval_all/metrics.json run42/eva
 - `python -m pytest tests/test_evaluate.py -q`：手算 AP/mINP/CMC、身份级 CMC 与实例级的区别、cam3→cam2 排除（含错误身份）、无正样本 query 的排除与计数、多 query 平均、平局确定性、gallery 抽样与 PMT 步骤一致且与行顺序无关、候选池变更拒绝、输入错位拒绝、样本 SD、命令行生成并复用固定 gallery、拒绝覆盖。
 - `python scripts/check_eval_reference.py /path/to/PMT`（固定 commit `0b31da9`）：200 组随机 SYSU 结构用例与上游 `eval_sysu` 比较 CMC/mAP/mINP；在临时 SYSU 目录上与 `process_gallery_sysu` 比较 All/Indoor × 10 个种子的 gallery 是否逐张相同。报告写入 `artifacts/results/eval_checks/reference.json`。
 
-与上游的已知差异：上游用 `np.argsort` 默认排序，平局顺序未定义，本实现用稳定排序；上游在不同身份数少于 max_rank 时 CMC 长度不齐会报错，本实现补齐到 max_rank。真实浮点特征几乎不出现平局，两者在正常输入下数值一致。
+与上游的已知差异：上游用 `np.argsort` 默认排序，平局顺序未定义，本实现用稳定排序；上游在不同身份数少于 max_rank 时 CMC 长度不齐会报错，本实现补齐到 max_rank；上游用 float32 计算距离，本实现用 float64。
+
+**对照结果（2026-10-28，PASS）：**
+
+- 合成用例：200 组 CMC 最大差 3.0e-8、mAP 1.1e-16、mINP 0；All/Indoor × 10 种子共 20 组 gallery 与 `process_gallery_sysu` 逐张相同。报告 `artifacts/results/eval_checks/reference.json`。
+- 真实特征（M0/M1/F seed17 × 10 组 gallery）：直接调用上游 `eval_sysu`。M0 全部一致（最大差 2.7e-7）。M1/F 的 seed 8 gallery 中有 4 个 query 存在距离差约 1e-7 的近似平局，float32/float64 舍入使其顺序互换，导致 1 个 query 在某一 CMC 名次上跨界：该点差 1/1980 = 0.0005，mAP 差 5e-7。若改用与上游相同的 float32 距离，结果与上游一致（CMC 差 3e-8，mAP 0）。该差异来自浮点舍入而非协议，对报告的 10 组平均指标影响 ≤ 0.00005。
+
+## 内部验证集的摄像头覆盖（重要限制）
+
+内部 val（99 身份）的导出中 IR query 只有 cam3（1,980 张），RGB 候选只有 cam4（990）/cam5（984）；没有 cam1/2/6。因此：
+
+- val 上的 All-search 实际是 cam3 → cam4/5，每组 gallery 195 张；cam3→cam2 排除规则在 val 上不起作用（仍在测试中覆盖）。
+- val 上无法做 Indoor-search（cam1/2 无图），评价器会直接报错。
+- 这与 test 集的摄像头组合不同，val 指标只用于开发比较，不能与论文 SYSU 测试结果直接对比。
+
+## 首批结果（内部 val，All-search，单训练种子 17，10 组固定 gallery 平均）
+
+| 实验 | run_id | mAP | mINP | Rank-1 | Rank-5 | Rank-10 | Rank-20 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| M0 | dev_M0_seed17_katana_20261025_retry1 | 0.3438 | 0.2424 | 0.3207 | 0.6027 | 0.7264 | 0.8388 |
+| M1 | dev_M1_seed17_katana_20261027_l40s | 0.3409 | 0.2401 | 0.3135 | 0.6056 | 0.7330 | 0.8401 |
+| F | dev_F_seed17_katana_20261027_retry1 | 0.3439 | 0.2419 | 0.3167 | 0.6121 | 0.7396 | 0.8453 |
+
+三者共用同一 gallery 文件（指纹 `d799087d813f…`），1,980 个 query 均有效。gallery 间 SD：mAP 约 0.015–0.017、Rank-1 约 0.019–0.024。逐 gallery 配对差（相对 M0）：M1 mAP −0.003（−0.010～+0.005）、Rank-1 −0.007；F mAP 0.000（−0.009～+0.009）、Rank-1 −0.004。差异小于 gallery 波动且只有一个训练种子，不能据此判断 S 有效或无效。原始结果见各 run 的 `eval_all/metrics.json`（本地，不入 Git）。
 
 ## 状态
 
-评价器与自检已完成；尚未在真实导出特征上运行，目前没有 baseline 检索指标。
+评价器与自检已完成，并通过 PMT 固定版本的参考实现对照；M0/M1/F seed17 已在内部 val 复评。

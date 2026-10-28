@@ -95,6 +95,8 @@ def sample_gallery(identities, cameras, paths, seed, search="all"):
 
 def build_gallery_trials(pool, seeds, search="all", split=None):
     """生成固定 gallery 记录；以路径保存，便于在不同模型的导出（行顺序可能不同）间复用。"""
+    if not np.isin(pool["cameras"], RGB_CAMERAS[search]).any():
+        raise ValueError(f"gallery pool has no images on cameras {RGB_CAMERAS[search]} ({search}-search impossible on this split)")
     return {"protocol": {"direction": "IR-to-RGB", "search": search, "shot": "single",
                          "rgb_cameras": list(RGB_CAMERAS[search]), "sampler": "PMT process_gallery_sysu (random.Random(seed).choice)"},
             "split": split, "pool_fingerprint": pool_fingerprint(pool), "pool_count": int(len(pool["paths"])),

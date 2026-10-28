@@ -120,6 +120,8 @@ def test_gallery_fixed_across_row_order_and_seeds_differ():
     for seed in range(10):
         assert shuffled["paths"][rows[seed]].tolist() == trials["trials"][str(seed)]
     assert len({tuple(v) for v in trials["trials"].values()}) > 1
+    with pytest.raises(ValueError, match="indoor-search impossible"):
+        build_gallery_trials(pool_rows(cams=(4, 5)), [0], "indoor")   # 内部 val 仅有 cam4/5
     changed = {k: v[1:] for k, v in pool.items()}
     with pytest.raises(ValueError, match="differs"):
         gallery_rows(changed, trials)
