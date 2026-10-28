@@ -140,15 +140,15 @@ E 自己检查评价正确性，不设其他成员的审批环节；上游数据
 
 ## 10. 本周进度记录（课堂汇报用）
 
-**当前进度：** 数据接口已就绪，M0 baseline 已完成 24 epochs 训练及验证集特征导出；检索评价待完成。
+**当前进度：** 数据接口已就绪，M0 baseline 已完成 24 epochs 训练及验证集特征导出；评价器已通过手算自检与 PMT 参考实现对照，M0（以及已训练的 M1、F）seed17 已得到内部验证集检索指标。
 
 | 成员 | 已完成 | 待完成 | 下一步 |
 | :---: | --- | --- | --- |
 | A | 数据接口、采样器与真实数据检查 | EDA | 补充数据分析与样例 |
 | B | M0 seed17 训练、恢复与特征导出 | 本周任务已完成 | 向 E 交付 baseline 权重与特征 |
-| C | 待填写 | 待填写 | 灰度调度与边界检查 |
-| D | 待填写 | 待填写 | 局部头与网格、梯度检查 |
-| E | 待填写 | 检索指标 | 核验评价协议并复评 M0 |
+| C | 平滑灰度调度 `src/schedules.py`（linear / 固定期望暴露量 / off）并接入训练入口；M1、F 配置；调度自检（边界、等期望暴露量、按配置与 step 重建）；方法说明；M1、F seed17 已在 Katana 完成 24 epochs 并由 E 复评 | 断点恢复端到端验证；多种子 | 种子 42/2026；切换期训练曲线分析 |
+| D | 尚无提交：`src/local_head.py` 仍为占位，仅有框架阶段的 M2/M3 配置 | 局部头、非正方形网格与梯度自检 | 按设计 10/29 前完成形状/梯度/小样本检查；10/31 前仍不成立则保留失败证据并降为探索工作 |
+| E | 评价器（固定 10 组 gallery、cam3→cam2 排除、身份级 CMC、mAP/mINP、跨种子汇总）；14 项手算自检；PMT `eval_sysu`/`process_gallery_sysu` 对照通过；M0/M1/F seed17 复评；M0 Top-5 检索案例 | `metrics.csv` 导出；鲁棒性评价（`src/robustness.py`）；多种子汇总 | 种子 42/2026 到位后汇总 mean±SD；失败案例分析 |
 
 ### 证据与说明
 
@@ -156,4 +156,35 @@ E 自己检查评价正确性，不设其他成员的审批环节；上游数据
 - **B：** [baseline 运行说明](docs/baseline.md)、[整合 Notebook](submission/project.ipynb)。Katana L40S 完成 M0 seed17 的 24 epochs；A+B 共 50 项测试及交付核验通过，已导出 IR 1,980 条、RGB 1,974 条验证特征。
 - **B 的本地交付：** 日志、配置与特征位于 `artifacts/results/dev_M0_seed17_katana_20261025_retry1/`；权重位于同名 `checkpoints/` 目录。AMP 问题已修复，正式作业成功结束；目前没有检索指标。
 
-**全组讨论：** 待实际讨论后填写；有指标时注明 run_id、训练进度、评价 split 和原始记录位置。
+- **C：** [平滑过渡方法与检查](docs/smooth_transition.md)、[调度实现](src/schedules.py)、[调度自检](tests/test_schedule.py)（3 项通过）；已合并至 main（PR #1、#2）。M1/F 训练记录：`dev_M1_seed17_katana_20261027_l40s`、`dev_F_seed17_katana_20261027_retry1`，交付核验 PASS（24 epochs、导出校验和与逐行对齐）。
+- **D：** 截至 2026-10-28 GitHub 上没有 D 的分支或提交。
+- **E：** [评价协议与运行说明](docs/evaluation.md)、[评价器](src/evaluate.py)、[自检](tests/test_evaluate.py)、[参考对照脚本](scripts/check_eval_reference.py)、[检索案例脚本](scripts/retrieval_cases.py)。B 交付的 6 个特征 npz 的 SHA256 与导出记录一致；验证集 3,954 张原图与训练 manifest 的 SHA256 逐张一致。对照报告 `artifacts/results/eval_checks/reference.json`；固定 gallery `artifacts/manifests/gallery_val_all_single.json`（本地，不入 Git）。
+
+### 初步结果（E 汇总，2026-10-28）
+
+协议：内部验证集（99 身份，未用于训练）、IR→RGB、All-search、Single-shot；单训练种子 17，10 组固定 gallery（种子 0–9）取平均；指标单位 %。三个模型共用同一组 gallery，1,980 个 query 均有效。
+
+| 实验 | run_id | 训练 | mAP | mINP | Rank-1 | Rank-5 | Rank-10 | Rank-20 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| **M0（PMT baseline）** | dev_M0_seed17_katana_20261025_retry1 | 24 epochs | **34.4** | 24.2 | **32.1** | 60.3 | 72.6 | 83.9 |
+| M1（PMT + 平滑过渡） | dev_M1_seed17_katana_20261027_l40s | 24 epochs | 34.1 | 24.0 | 31.3 | 60.6 | 73.3 | 84.0 |
+| F（固定概率对照） | dev_F_seed17_katana_20261027_retry1 | 24 epochs | 34.4 | 24.2 | 31.7 | 61.2 | 74.0 | 84.5 |
+
+- gallery 间波动（SD）：mAP 约 1.5–1.7，Rank-1 约 1.9–2.4。
+- 逐 gallery 配对差（相对 M0）：M1 mAP −0.3（−1.0～+0.5）、Rank-1 −0.7；F mAP 0.0（−0.9～+0.9）、Rank-1 −0.4。
+- 原始记录：各 run 的 `eval_all/metrics.json`（E 本地，解压自 B 交付的结果包，含 checkpoint 与输入 SHA256）。
+
+**解读与限制：**
+
+1. 本组 baseline 已建立：PMT M0 在内部验证集上 mAP 34.4%、Rank-1 32.1%，作为后续比较基准。
+2. M1、F 与 M0 的差异小于 gallery 间波动，且只有一个训练种子，**目前不能判断平滑过渡有效或无效**；需种子 42/2026 后按"先平均 gallery、再跨种子 mean±SD"汇总。
+3. 内部验证集的 IR 只有 cam3、RGB 只有 cam4/5（无 cam1/2/6），All-search 实际为 cam3→cam4/5，无法做 Indoor-search；验证指标只用于组内比较，**不能与论文 SYSU 测试集结果直接对比**（论文为 395 训练身份、测试集、完整摄像头组合）。
+4. Top-5 检索案例（从"Rank-1 错、正确身份在第 2–3 位"的 371 个 query 中随机抽取 4 个，`artifacts/results/M0_seed17/retrieval_cases/near/`）显示：红外中深色衣物可呈亮色，颜色/明暗线索失效，模型易混淆发型、体型相近的人。
+
+**待全组讨论（讨论后在此记录结论）：**
+
+- 种子 42/2026 的训练排期（M0、M1，及 F 是否需要多种子）。
+- 内部验证集摄像头覆盖有限是否需要在报告中单独说明，或调整验证协议。
+- M2/M3（局部监督）接入后共用同一 gallery 文件与评价命令。
+
+**全组讨论结论：** 待实际讨论后填写。
