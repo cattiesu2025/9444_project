@@ -6,8 +6,8 @@
 | --- | --- | --- | --- | --- | --- |
 | PMT 数据增强 | https://github.com/hulu88/PMT | 0b31da97b06428473bc4a1134b322ea226340818 | 仓库未声明许可证，待核对 | Pytorch-PMT-VI-ReID/transforms.py（RandomErasing、增强顺序与参数）、process_sysu.py（预缩放）/ src/data.py | 灰度转换改为采样器逐样本决定，便于平滑过渡；每样本独立增强种子；A |
 | PMT | https://github.com/hulu88/PMT | 0b31da97b06428473bc4a1134b322ea226340818 | 仓库未声明统一许可证 | model/、loss/、train.py、optimizer.py、scheduler.py 作核对参考 / src/model.py、src/losses.py、src/training.py、src/train.py | 按算法独立实现，保留上游参数名便于初始化和数值核验；新增数值退化保护、完整恢复与证据记录；B |
-| SYSU 协议 | https://github.com/wuancong/SYSU-MM01 | 待核对 | 待核对 | 待核对 / src/evaluate.py | E |
-| 评价交叉参考 | https://github.com/mangye16/Cross-Modal-Re-ID-baseline | 待核对 | 待核对 | eval_metrics.py / 尚未引入 | E |
+| SYSU 协议 | https://github.com/hulu88/PMT（沿用 SYSU-MM01 官方评价约定） | 0b31da97b06428473bc4a1134b322ea226340818 | 仓库未声明统一许可证 | Pytorch-PMT-VI-ReID/datamanager.py（process_gallery_sysu）、eval_metrics.py（eval_sysu）作核对参考 / src/evaluate.py | 按协议独立实现，未复制上游代码；稳定排序处理平局、CMC 补齐到 max_rank、记录无正样本 query；数值对照脚本 scripts/check_eval_reference.py；E |
+| 评价交叉参考 | https://github.com/mangye16/Cross-Modal-Re-ID-baseline | 未锁定 | 待核对 | eval_metrics.py / 未引入；PMT 的 eval_sysu 源自该实现，目前只对照 PMT 固定版本 | E |
 | S 扩展 | 本地设计 §5.2；相关文献待补查 | 不适用 | 待团队确定 | src/schedules.py | C |
 | L 扩展 | 本地设计 §5.3；相关文献待补查 | 不适用 | 待团队确定 | src/local_head.py | D |
 

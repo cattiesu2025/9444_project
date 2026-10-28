@@ -11,6 +11,7 @@
 - [工程架构与接口](docs/architecture.md)
 - [数据接口说明（A）](docs/data_interface.md)
 - [PMT baseline 说明与 Katana 运行（B）](docs/baseline.md)
+- [检索评价协议与运行（E）](docs/evaluation.md)
 - [代码来源与复现差异登记](ATTRIBUTION.md)
 - [整合 Notebook（baseline 已写入）](submission/project.ipynb)
 - [Notebook 结构与评分覆盖](submission/README.md)
@@ -46,7 +47,8 @@ src/
   local_head.py             # D：局部监督（接口占位）
   train.py, training.py     # B：训练/完整恢复（已实现）
   export_features.py        # B：BN后归一化特征与元数据导出
-  evaluate.py, robustness.py # E：评价/扰动（接口占位）
+  evaluate.py               # E：固定 gallery、SYSU 指标与跨种子汇总（已实现，待真实特征复评）
+  robustness.py             # E：扰动（接口占位）
 scripts/inspect_config.py    # 可直接运行的配置检查
 scripts/prepare_data.py      # A：一条命令准备数据（查找/下载、审计、接口检查）
 scripts/build_manifest.py    # A：manifest、划分、标签映射与数据审计
