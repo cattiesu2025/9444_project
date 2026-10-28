@@ -1,6 +1,7 @@
 # Weekly Progress and Class Checkpoint (PMT Transformer)
 
 **Last updated:** 2026-10-28, Australia/Sydney  
+**中文版：** [011_Weekly_Checkpoint_Deliverables_zh.md](011_Weekly_Checkpoint_Deliverables_zh.md) (same content)  
 **Design document:** [Project Design](010_Project_Design.md)  
 **Members:** A–E are member codes to be replaced with names. Unchecked items below are plans, not completed work.  
 **Dates:** The official checkpoint time follows course announcements. The 10/25 data-interface and 10/28 results-summary dates are internal targets only; they neither replace nor postpone course deadlines.
