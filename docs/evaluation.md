@@ -54,6 +54,35 @@ Known differences from upstream: upstream uses the default `np.argsort`, so tie 
 - Synthetic cases: over 200 cases, max difference CMC 3.0e-8, mAP 1.1e-16, mINP 0; all 20 galleries (All/Indoor × 10 seeds) identical to `process_gallery_sysu` image by image.
 - Real features (M0/M1/F seed17 × 10 galleries), passed directly to upstream `eval_sysu`: M0 matches everywhere (max difference 2.7e-7). In the seed-8 gallery of M1/F, 4 queries have near-ties with distance gaps of about 1e-7; float32 vs float64 rounding swaps their order, moving one query across one CMC rank: that point differs by 1/1980 = 0.0005 and mAP by 5e-7. With float32 distances, as upstream uses, results match upstream (CMC 3e-8, mAP 0). The difference comes from floating-point rounding, not the protocol, and changes the reported 10-gallery means by at most 0.00005.
 
+## Robustness under query perturbations (`src/robustness.py`)
+
+Rules fixed in advance on the development split (design §7); only IR queries are perturbed and the RGB gallery features exported by B for the same checkpoint are reused unchanged.
+
+| Item | Setting |
+| --- | --- |
+| Processing order | load → LANCZOS resize to model input (256×128) → perturbation → ToTensor → ImageNet Normalize (same as B's export) |
+| Occlusion | Full-width horizontal band at top / middle / bottom covering 10% or 20% of the image (band height = round(ratio × height): 26 or 51 rows); filled with the ImageNet mean pixel (124, 116, 104), which normalises to about 0 and is the same fill used by RandomErasing during training |
+| Blur | Gaussian blur, σ = 1 (kernel 7) and σ = 2 (kernel 13); kernel = 2⌈3σ⌉ + 1 |
+| Conditions | clean + 6 occlusions + 2 blurs = 9, all deterministic (no random numbers) |
+| Galleries | The same fixed gallery file as `src.evaluate`; metrics are means over the 10 galleries |
+| Report | Per-condition mAP / mINP / Rank-k, and the absolute drop from clean in percentage points |
+
+```bash
+python -m src.robustness \
+  --checkpoint checkpoints/dev_M0_seed17_katana_20261025_retry1/last.pt \
+  --gallery-pool <run>/gallery_pool_val.npz --query <run>/query_val.npz \
+  --manifest <run>/training_manifest.csv --root data/SYSU-MM01 \
+  --output-dir artifacts/results/dev_M0_seed17_katana_20261025_retry1/robustness
+```
+
+Checks before running: checkpoint SHA256 must equal the gallery pool's `checkpoint_sha256`, and the manifest SHA256 must equal the one stored in the checkpoint. The clean condition is re-extracted and compared with B's exported queries (`export_consistency`, min cosine > 0.999), which confirms the model is loaded and preprocessed exactly as in the export. Output: `robustness.json` (refuses to overwrite) and `perturbation_examples.png` showing one query under every condition.
+
+Self-tests (`tests/test_robustness.py`, 12 passing): band position and area for every region/ratio, fill value, pixels outside the band unchanged, blur deterministic and size-preserving with stronger blur lowering contrast, fixed condition list, end-to-end run on synthetic data with a tiny model (clean result identical to plain evaluation, gallery file untouched, no overwrite), perturbations change query features, and rejection of a mismatched checkpoint or manifest.
+
+Runtime on an RTX 5070 Ti Laptop GPU: about 2 minutes per condition for the 1,980 validation queries (single loader worker), about 17 minutes for all 9.
+
+Artificial occlusion and blur are controlled stress tests, not the real occlusion distribution; they must not be used to tune methods. Natural occlusion examples are reported separately.
+
 ## Camera coverage of the internal validation split (important limitation)
 
 In the internal validation split (99 identities), IR queries come only from cam3 (1,980 images) and RGB candidates only from cam4 (990) and cam5 (984); there are no cam1/2/6 images. Therefore:
@@ -74,4 +103,4 @@ All three share the same gallery file (fingerprint `d799087d813f…`); all 1,980
 
 ## Status
 
-The evaluator and its self-tests are complete and match the pinned PMT reference implementation; M0/M1/F seed17 have been re-evaluated on the internal validation split.
+The evaluator and its self-tests are complete and match the pinned PMT reference implementation; M0/M1/F seed17 have been re-evaluated on the internal validation split. The robustness tool is implemented and self-tested; it has not been run on real checkpoints yet because the trained weights (`last.pt`) are not available locally.

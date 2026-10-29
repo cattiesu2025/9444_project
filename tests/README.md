@@ -19,3 +19,5 @@
 `python -m pytest tests/test_evaluate.py -q`：14 项通过。期望值为手算：AP/mINP/身份级 CMC、cam3→cam2 排除、无正样本 query 计数、gallery 抽样与 PMT 步骤一致、固定 gallery 复用与拒绝、跨种子样本 SD、命令行端到端。不涉及真实特征。
 
 `python scripts/check_eval_reference.py /path/to/PMT`：与固定 commit 的 `eval_sysu`、`process_gallery_sysu` 数值对照，报告写入 `artifacts/results/eval_checks/reference.json`。详见 [docs/evaluation.md](../docs/evaluation.md)。
+
+`python -m pytest tests/test_robustness.py -q`：12 项通过（需 PyTorch）。遮挡带位置/面积/填充值、带外像素不变、模糊确定性、条件列表固定、合成数据小模型端到端（干净条件与普通评价一致、gallery 不变、拒绝覆盖）、扰动只改变 query 特征、拒绝不匹配的权重或 manifest。不代表真实鲁棒性结果。
