@@ -1,0 +1,38 @@
+{
+  "experiment": "CAJ",
+  "owner": "待定",
+  "model": {
+    "backbone": "ResNet-50 AGW two-stream",
+    "image_size": [288, 144],
+    "global_feature_dim": 2048,
+    "non_local": true,
+    "gem_p": 3.0
+  },
+  "training": {
+    "seeds": [17],
+    "epochs": 100,
+    "stage1_epochs": 0,
+    "optimizer": "SGD",
+    "learning_rate": 0.1,
+    "backbone_lr_factor": 0.1,
+    "momentum": 0.9,
+    "nesterov": true,
+    "weight_decay": 0.0005,
+    "lr_schedule": "step_warmup",
+    "warmup_epochs": 10,
+    "lr_milestones": [20, 50],
+    "amp": false
+  },
+  "loss": {
+    "method": "ID+ADP",
+    "alpha": 1.0,
+    "gamma": 1.0,
+    "square": true,
+    "msel_weight": 0.0,
+    "dcl_weight": 0.0
+  },
+  "augmentation": {
+    "channel_augmentation": true,
+    "random_erasing": 0.5
+  }
+}

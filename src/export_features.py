@@ -7,6 +7,7 @@ import torch
 from torch.utils.data import DataLoader
 from .data import get_eval_dataset, collate_eval
 from .model import PMT
+from .agw import AGW, BACKBONE as AGW_BACKBONE
 from .training import load_checkpoint, sha256
 from .train import choose_device, PROJECT
 
@@ -17,7 +18,9 @@ def export_dataset(model, dataset, output, metadata, batch_size=128, num_workers
     loader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, collate_fn=collate_eval)
     collected = {key: [] for key in ("features", "identities", "cameras", "modalities", "row_indices", "paths")}
     for batch in loader:
-        collected["features"].append(model(batch["images"].to(device))["retrieval_feature"].cpu().numpy())
+        images = batch["images"].to(device)
+        result = model(images, batch["modalities"].to(device)) if getattr(model, "modality_specific", False) else model(images)
+        collected["features"].append(result["retrieval_feature"].cpu().numpy())
         for key in ("identities", "cameras", "modalities", "row_indices"):
             collected[key].append(batch[key].numpy())
         collected["paths"].extend(batch["paths"])
@@ -55,7 +58,8 @@ def main():
     checkpoint = load_checkpoint(args.checkpoint)
     cfg = checkpoint["config"]
     device = choose_device(args.device)
-    model = PMT(checkpoint["num_classes"], cfg["model"]).to(device)
+    network = AGW if cfg["model"]["backbone"] == AGW_BACKBONE else PMT
+    model = network(checkpoint["num_classes"], cfg["model"]).to(device)
     model.load_state_dict(checkpoint["model"], strict=True)
     dataset = get_eval_dataset(args.split, modality=args.modality, root=args.root, download=False,
                                image_size=tuple(cfg["model"]["image_size"]))

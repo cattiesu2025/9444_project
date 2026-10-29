@@ -8,6 +8,7 @@
 | PMT | https://github.com/hulu88/PMT | 0b31da97b06428473bc4a1134b322ea226340818 | 仓库未声明统一许可证 | model/、loss/、train.py、optimizer.py、scheduler.py 作核对参考 / src/model.py、src/losses.py、src/training.py、src/train.py | 按算法独立实现，保留上游参数名便于初始化和数值核验；新增数值退化保护、完整恢复与证据记录；B |
 | SYSU 协议 | https://github.com/wuancong/SYSU-MM01 | 待核对 | 待核对 | 待核对 / src/evaluate.py | E |
 | 评价交叉参考 | https://github.com/mangye16/Cross-Modal-Re-ID-baseline | 待核对 | 待核对 | eval_metrics.py / 尚未引入 | E |
+| AGW / CAJ 外部 baseline | https://github.com/mangye16/Cross-Modal-Re-ID-baseline | e817a2672c1e14e8802617acb980a79520ef9545 | MIT，许可文本见 third_party_licenses/mangye16-Cross-Modal-Re-ID-baseline-LICENSE | model.py、loss.py、resnet.py、train.py；ICCV21_CAJ/ChannelAug.py、data_loader.py、loss.py、train_ext.py / src/agw.py、src/train_agw.py | 按上游行为移植（含 Non_local inter_channels=1、ADP 平方差损失）；改用本组 296 身份划分、A 的 P/K 采样器与统一特征导出；训练入口与恢复复用 B 的实现；负责人待定 |
 | S 扩展 | 本地设计 §5.2；相关文献待补查 | 不适用 | 待团队确定 | src/schedules.py | C |
 | L 扩展 | 本地设计 §5.3；相关文献待补查 | 不适用 | 待团队确定 | src/local_head.py | D |
 
