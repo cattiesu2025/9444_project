@@ -22,12 +22,20 @@
 | M0 seed17 训练与验证集特征（B） | 已完成，24 epochs | `artifacts/results/dev_M0_seed17_katana_20261025_retry1/` |
 | V0 代码与配置（B） | 已实现，未训练 | [configs/experiments/V0.json](configs/experiments/V0.json) |
 | S 调度模块（C） | 已完成；M1、F seed17 已训练并导出特征 | [docs/smooth_transition.md](docs/smooth_transition.md)、`artifacts/results/dev_M1_*`、`dev_F_*` |
-| 局部监督模块（D） | 未实现（`src/local_head.py` 仍为占位） | — |
-| 评价器（E） | 未实现（`src/evaluate.py` 仍为占位） | — |
-| 鲁棒性扰动（E） | 未实现 | — |
+| 局部监督模块（D） | 已实现并有自检，在分支 `feat/local-supervision`，未合并；M2 未训练 | `src/local_head.py`、`tests/test_local_head.py`、`docs/local_supervision.md`（该分支） |
+| 评价器（E） | 已完成：14 项手算自检；与 PMT `eval_sysu`/`process_gallery_sysu`（commit `0b31da9`）对照通过；M0/M1/F seed17 已评价 | [评价说明](docs/evaluation.md)、`src/evaluate.py`、PR #3 |
+| 鲁棒性扰动（E） | 已完成：9 种固定扰动（上/中/下遮挡 10%/20%、模糊 σ=1/2），只扰动 IR query；12 项自检；M0/M1/F seed17 已运行 | [评价说明 · 鲁棒性](docs/evaluation.md)、`src/robustness.py` |
 | AGW / CAJ 代码 | 已实现并通过 14 项自检，未训练 | 分支 `feat/agw-caj-baselines`：`src/agw.py`、`src/train_agw.py` |
 
-**目前所有已训练的模型都没有检索指标。**
+**M0/M1/F seed17 已有检索指标（内部 val，All-search，10 组固定 gallery 均值）：**
+
+| 实验 | mAP | mINP | Rank-1 | Rank-5 | Rank-10 | Rank-20 |
+| --- | --- | --- | --- | --- | --- | --- |
+| M0 | 34.4 | 24.2 | 32.1 | 60.3 | 72.6 | 83.9 |
+| M1 | 34.1 | 24.0 | 31.3 | 60.6 | 73.3 | 84.0 |
+| F | 34.4 | 24.2 | 31.7 | 61.2 | 74.0 | 84.5 |
+
+三者差别小于 gallery 间波动（mAP SD 约 1.5–1.7，Rank-1 SD 约 1.9–2.4），且只有一个训练种子，暂不能判断 S 的作用。内部 val 只有 cam3 query 和 cam4/5 gallery，无法做 Indoor-search，数值不能与论文测试集结果直接比较。
 
 ## 3. 上周未完成工作
 
@@ -135,7 +143,7 @@ AGW/CAJ 作者原本用 train+val 395 个身份训练，本组改为 296 个，�
 
 ## 8. 进度记录（课堂汇报用）
 
-**当前进度：** 待填写。
+**当前进度：** E 的评价器、M0/M1/F 首轮评价、检索案例与鲁棒性已完成（2026-10-30）；其余成员待填写。
 
 | 成员 | 已完成 | 待完成 | 下一步 |
 | :---: | --- | --- | --- |
@@ -143,7 +151,7 @@ AGW/CAJ 作者原本用 train+val 395 个身份训练，本组改为 296 个，�
 | B | | | |
 | C | | | |
 | D | | | |
-| E | | | |
+| E | 评价器及核验；M0/M1/F seed17 评价；Top-k 检索案例；鲁棒性工具及 M0/M1/F 运行（下方遮挡 20% 时 mAP 约降 8 点，上方 20% 约降 5.6 点，中间遮挡和模糊不超过约 2 点；三个模型下降几乎相同） | V0、AGW、CAJ、M2 的评价；主表（含参数量、FLOPs）；M2 鲁棒性对比 | 等 B 交 V0 特征、AGW/CAJ 短训练特征、D 交 M2 特征和权重；拿到即评价 |
 | 待定（AGW/CAJ） | | | |
 
 **全组讨论：** 待实际讨论后填写；引用指标时注明 run_id、评价 split 和原始记录位置。
