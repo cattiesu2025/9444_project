@@ -11,6 +11,7 @@
 - [工程架构与接口](docs/architecture.md)
 - [数据接口说明（A）](docs/data_interface.md)
 - [PMT baseline 说明与 Katana 运行（B）](docs/baseline.md)
+- [检索评价协议与运行（E）](docs/evaluation.md)
 - [代码来源与复现差异登记](ATTRIBUTION.md)
 - [整合 Notebook（baseline 已写入）](submission/project.ipynb)
 - [Notebook 结构与评分覆盖](submission/README.md)
@@ -46,7 +47,8 @@ src/
   local_head.py             # D：局部监督（接口占位）
   train.py, training.py     # B：训练/完整恢复（已实现）
   export_features.py        # B：BN后归一化特征与元数据导出
-  evaluate.py, robustness.py # E：评价/扰动（接口占位）
+  evaluate.py               # E：固定 gallery、SYSU 指标与跨种子汇总（已实现，待真实特征复评）
+  robustness.py             # E：固定遮挡/模糊扰动下的鲁棒性（已实现并自检，M0/M1/F seed17 已运行，结果见 docs/evaluation.md）
 scripts/inspect_config.py    # 可直接运行的配置检查
 scripts/prepare_data.py      # A：一条命令准备数据（查找/下载、审计、接口检查）
 scripts/build_manifest.py    # A：manifest、划分、标签映射与数据审计
@@ -125,7 +127,7 @@ loader, sampler, dataset, label_map = get_train_loader("M0")   # final=True 用 
 - [x] 数据接口与采样器（合成数据自检通过）。
 - [x] 本机真实数据审计与真实 batch 检查。
 - [x] B 的模型、损失、训练恢复和导出实现；真实数据 3 步短跑。
-- [ ] 评价器正确性验证（E）。
+- [x] 评价器正确性验证（E）：手算自检 + PMT `eval_sysu`/`process_gallery_sysu` 对照通过；M0/M1/F seed17 已在内部 val 复评。
 - [x] 本组实际训练的 M0 baseline（seed17，24 epochs）。
 - [ ] S/L 模块、M0–M3 消融与 F/Q 控制。
 - [ ] 最终冻结配置训练、鲁棒性与错误分析。

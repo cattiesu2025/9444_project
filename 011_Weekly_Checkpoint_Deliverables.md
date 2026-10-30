@@ -1,159 +1,189 @@
-# 本周进度与课堂 Checkpoint 汇报（PMT Transformer 版）
+# Weekly Progress and Class Checkpoint (PMT Transformer)
 
-**更新日期：** 2026-10-24，Australia/Sydney  
-**对应设计：** [Project Design](010_Project_Design.md)  
-**人员：** A–E 为待替换姓名的成员代号。以下均为计划，不表示已完成。  
-**日期：** 正式 checkpoint 时间以课程公告为准。10/25 数据接口、10/28 结果汇总仅为内部目标，不能替代或延后课程截止日。
+**Last updated:** 2026-10-28, Australia/Sydney  
+**中文版：** [011_Weekly_Checkpoint_Deliverables_zh.md](011_Weekly_Checkpoint_Deliverables_zh.md) (same content)  
+**Design document:** [Project Design](010_Project_Design.md)  
+**Members:** A–E are member codes to be replaced with names. Unchecked items below are plans, not completed work.  
+**Dates:** The official checkpoint time follows course announcements. The 10/25 data-interface and 10/28 results-summary dates are internal targets only; they neither replace nor postpone course deadlines.
 
-**课堂形式：** tutor 口头询问项目进度，不要求现场检查代码。以下实现与自检清单用于团队推进完整项目，不是课堂必须提交的代码包。课堂准备说明本人已完成什么、当前结果、遇到的问题和下一步即可；代码始终按功能放在项目目录中。
+**Class format:** The tutor asks about project progress orally; code is not inspected in class. The implementation and self-check lists below help the team move the full project forward and are not a code package that must be submitted in class. To prepare, each member explains what they have done, current results, problems met and next steps. Code always lives in the project directories by function.
 
-## 1. 本周目标与名称说明
+## 1. Goals for This Week and Terminology
 
-课程要求：确定 baseline，完成实现、用本组数据训练、评价并记录讨论初步结果。
+Course requirement: choose a baseline, implement it, train it on our data, evaluate it, and record and discuss initial results.
 
-本组 baseline 是 **PMT：共享 Transformer＋原论文两阶段训练及损失**。本周先完成一个训练种子的初步结果，后续改进不作为 baseline 完成的前置条件。
+Our baseline is **PMT: a shared Transformer with the original paper's two-stage training and losses**. This week we first obtain initial results for one training seed; later improvements are not a prerequisite for completing the baseline.
 
-- **平滑灰度过渡（简称 S，Smooth transition）：** 第二阶段仍以一定概率使用灰度图，再逐步降低该概率到 0，代替立即全部切换到 RGB。这是本组计划验证的改进，由 C 负责。
-- **局部特征监督（简称 L，Local supervision）：** 将 Transformer 的图像 patch 特征按水平区域聚合，增加局部身份监督。这是本组计划验证的改进，由 D 负责。
-- S/L 只是设计中的因素代号，不是成员姓名，也不是 PMT 原论文的两个组件名称。
+- **Smooth grayscale transition (S, Smooth transition):** in stage 2, still use grayscale images with some probability and gradually reduce that probability to 0, instead of switching to RGB all at once. This is an improvement the group plans to test; owned by C.
+- **Local feature supervision (L, Local supervision):** pool the Transformer's image patch features by horizontal region and add local identity supervision. This is an improvement the group plans to test; owned by D.
+- S/L are factor codes in the design, not member names, and not the names of components in the original PMT paper.
 
-**分工原则：一人负责一份独立产物，自己实现、检查并撰写说明。** B 独立负责完整 baseline；C/D 分别交独立改进模块，不承担 B 的 baseline 核验。E 负责评价与汇总，不代写其他人的技术说明。各自维护自己的模块和配置，不要求多人同时修改同一个训练文件。
+**Division of work: each person owns one independent deliverable and implements, checks and documents it themselves.** B owns the full baseline; C and D each deliver an independent improvement module and do not verify B's baseline. E owns evaluation and the summary and does not write other members' technical write-ups. Each member maintains their own module and configs; nobody needs to edit the same training file at the same time.
 
-## 2. 每个人本周交付什么
+## 2. What Each Member Delivers This Week
 
-| 成员 | 独立负责内容 | 本周交付物 | 交付顺序 |
+| Member | Owns | Deliverables this week | Order |
 |---|---|---|---|
-| A | 数据准备、划分、采样与 EDA | 数据入口、划分/标签说明、采样器、审计和 EDA 初稿 | 数据接口最先交；EDA 可稍后 |
-| B | 完整 PMT baseline 的实现与训练 | 环境、训练/特征导出入口、配置、训练日志、模型权重、方法说明 | A 数据接口后完成真实训练，再交 E |
-| C | 平滑灰度过渡改进 | 独立调度模块、概率示例、自检结果和方法说明 | 可与 A/B 同时做；不阻塞 baseline |
-| D | 局部特征监督改进 | 独立局部头模块、形状/梯度自检和方法说明 | 可与 A/B 同时做；不阻塞 baseline |
-| E | 检索评价与初步结果汇总 | 评价代码、指标自检、固定 gallery、baseline 指标、检索案例和汇总页 | 先独立准备评价；拿到 A 数据及 B 权重后产出指标 |
+| A | Data preparation, splits, sampling and EDA | Data entry point, split/label notes, sampler, audit and EDA draft | Data interface first; EDA can follow |
+| B | Implementation and training of the full PMT baseline | Environment, training/feature-export entry points, configs, training logs, model weights, method notes | Real training after A's data interface, then hand over to E |
+| C | Smooth grayscale transition | Independent schedule module, probability examples, self-test results and method notes | In parallel with A/B; does not block the baseline |
+| D | Local feature supervision | Independent local-head module, shape/gradient self-tests and method notes | In parallel with A/B; does not block the baseline |
+| E | Retrieval evaluation and initial results summary | Evaluation code, metric self-tests, fixed galleries, baseline metrics, retrieval cases and summary page | Prepare the evaluator independently first; produce metrics once A's data and B's weights are available |
 
-## 3. A：数据准备与 EDA
+## 3. A: Data Preparation and EDA
 
-**项目位置：** `src/data.py`、`data/`、`artifacts/manifests/`；EDA 结果放入 `artifacts/results/`。
+**Location:** `src/data.py`, `data/`, `artifacts/manifests/`; EDA outputs go to `artifacts/results/`.
 
-必须交付：
+Required:
 
-1. 数据路径及来源说明，RGB/IR、身份、摄像头的映射规则。
-2. `manifest.csv`、训练/验证/测试划分文件及检查记录：身份不重叠，图片可读取，缺失/异常有记录。
-3. 可执行数据读取与身份/模态平衡采样入口；提供一条命令及真实 batch 示例。
-4. batch 包含图片、连续训练标签、原始身份、模态、摄像头；默认 `2PK=64`，P=8、K=4，具体配置写明。
-5. 初步 EDA：摄像头/模态数量、每身份样本分布、同身份 RGB/IR 样例。每类图写清观察及对训练的影响。
+1. Data path and source notes; mapping rules for RGB/IR, identities and cameras.
+2. `manifest.csv`, train/validation/test split files and check records: no identity overlap, all images readable, missing/abnormal files recorded.
+3. Runnable data loading and an identity/modality-balanced sampling entry point; one command and a real batch example.
+4. Each batch contains images, contiguous training labels, original identities, modality and camera; default `2PK=64` with P=8, K=4, with the configuration stated.
+5. Initial EDA: camera/modality counts, per-identity sample distribution, RGB/IR examples of the same identity. Each figure states the observation and its implication for training.
 
-默认开发划分为 296 个训练身份、99 个验证身份，96 个测试身份保留。不得按图片随机拆分而混入相同身份。
+The default development split is 296 training identities and 99 validation identities, with 96 test identities held out. Images must not be split at random in a way that mixes the same identity across splits.
 
-**完成标准：** 数据接口可直接读取；检查记录完整；不必等全部 EDA 画完才交接口。本周不要求完成采样对照训练。
+**Done when:** the data interface can be read directly and check records are complete; the interface does not wait for all EDA plots. Sampling-control training is not required this week.
 
-## 4. B：完整 PMT baseline
+## 4. B: Full PMT Baseline
 
-**项目位置：** `src/model.py`、`src/losses.py`、`src/train.py`、`configs/`；权重放入 `checkpoints/`，日志放入 `artifacts/results/`。
+**Location:** `src/model.py`, `src/losses.py`, `src/train.py`, `configs/`; weights go to `checkpoints/`, logs to `artifacts/results/`.
 
-必须交付：
+Required:
 
-1. 环境说明：作者代码 URL/commit、依赖、设备、预训练来源和实际修改。记录论文 MindSpore 与公开 PyTorch 实现的差异。
-2. 完整 PMT 模型与训练入口，包括共享 ViT、两阶段输入、PHT/MSEL/DCL、保存恢复；B 自己核验原方法及阶段边界。
-3. 配置文件：输入、patch/stride、采样、增强、损失、优化器、种子和训练长度。原论文 SYSU 配置 24 epochs、前 6 epochs 第一阶段作为核对起点，不能未经核对就声称一致。
-4. 本组真实数据训练日志及 checkpoint 路径/checksum。日志包括各项 loss、stage、epoch/global step、学习率、耗时与峰值显存。
-5. 模型加载与特征导出入口：输出特征及对应原始身份、摄像头、模态和图片路径，供 E 评价；说明特征维度、归一化和距离。
-6. 简短方法与运行说明：一条训练命令、一条特征导出命令、已完成训练进度和已知问题。
+1. Environment notes: author code URL/commit, dependencies, device, pretraining source and actual modifications. Record differences between the paper's MindSpore and the public PyTorch implementation.
+2. Full PMT model and training entry point, including the shared ViT, two-stage input, PHT/MSEL/DCL, save and resume; B verifies the original method and stage boundary.
+3. Config files: input, patch/stride, sampling, augmentation, losses, optimiser, seeds and training length. The paper's SYSU setting (24 epochs, first 6 epochs as stage 1) is the starting point for checking and must not be claimed identical without verification.
+4. Training logs on our real data and checkpoint path/checksum. Logs include each loss, stage, epoch/global step, learning rate, time and peak GPU memory.
+5. Model loading and feature-export entry point: features with original identities, cameras, modality and image paths for E's evaluation; state feature dimension, normalisation and distance.
+6. Short method and usage notes: one training command, one feature-export command, completed training progress and known issues.
 
-**完成标准：** 实际训练并保存可加载权重，输入/损失/恢复自检通过。baseline 不启用平滑过渡或局部监督；B 不等待 C/D 改进模块。
+**Done when:** a model has actually been trained with loadable weights saved, and input/loss/resume self-tests pass. The baseline does not enable smooth transition or local supervision; B does not wait for the C/D modules.
 
-完整方法与完整训练分开表述：部分 epochs 的结果写“阶段性结果”；作者预训练模型仅用于校验不能代替本组训练。若实际只完成基础 ViT，必须标为基础 ViT，不得称完整 PMT。
+Describe the full method and full training separately: results from partial epochs are "interim results"; the authors' pretrained model may only be used for verification and does not replace our own training. If only a plain ViT was actually completed, it must be labelled a plain ViT, not full PMT.
 
-## 5. C：平滑灰度过渡模块
+## 5. C: Smooth Grayscale Transition Module
 
-**项目位置：** `src/schedules.py`、`configs/experiments/M1.json`、`configs/experiments/F.json`。
+**Location:** `src/schedules.py`, `configs/experiments/M1.json`, `configs/experiments/F.json`.
 
-必须交付：
+Required:
 
-1. `src/schedules.py`：独立概率调度函数，输入第二阶段步数、过渡窗口和初始概率，输出当前灰度概率；给出关闭开关及恢复所需状态。
-2. 独立运行示例：打印或绘制直接切换、平滑过渡、固定概率控制的概率序列；解释固定控制怎样匹配期望灰度暴露量。
-3. 自检记录：概率范围、窗口首尾、窗口后归零、断点恢复连续性、关闭时不改变原路径。短示例可以用模拟步数，不冒充训练结果。
-4. 方法说明：问题假设、公式、默认参数、预期输入输出、如何接入第二阶段，以及后续对照实验。
+1. `src/schedules.py`: an independent probability schedule taking the stage-2 step, transition window and initial probability, and returning the current grayscale probability; provide an off switch and the state needed for resume.
+2. Standalone example: print or plot the probability sequences for an immediate switch, a smooth transition and the fixed-probability control; explain how the fixed control matches the expected grayscale exposure.
+3. Self-check records: probability range, window start/end, zero after the window, continuity across resume, and no change to the original path when switched off. Short examples may use simulated steps and must not be presented as training results.
+4. Method notes: hypothesis, formula, default parameters, expected inputs/outputs, how it plugs into stage 2, and follow-up control experiments.
 
-**完成标准：** 不依赖 B 正在运行的训练任务也能执行和验证模块。灰度转换针对可见光来源，IR 不变；不能同时更改 PMT 损失切换规则。
+**Done when:** the module can run and be verified without depending on B's running training jobs. Grayscale conversion applies to visible-light sources only; IR is unchanged; PMT's loss-switching rules must not be changed at the same time.
 
-**本周不要求：** 完成改进模型训练或证明提升。B baseline 交付后，C 在其固定版本基础上独立完成自己的改进配置与训练入口；不要求 B 替 C 集成。
+**Not required this week:** training the improved model or showing an improvement. After B delivers the baseline, C builds their own improved config and training entry on B's fixed version; B is not expected to integrate it for C.
 
-## 6. D：局部特征监督模块
+## 6. D: Local Feature Supervision Module
 
-**项目位置：** `src/local_head.py`、`configs/experiments/M2.json`、`configs/experiments/M3.json`。
+**Location:** `src/local_head.py`, `configs/experiments/M2.json`, `configs/experiments/M3.json`.
 
-必须交付：
+Required:
 
-1. `local_head.py`：输入去除特殊 token 的 patch 特征及显式 H_p/W_p，按水平区域聚合；初版 q=2，每区有局部身份分类头。
-2. 独立调用示例：输入模拟 patch 特征，输出局部特征、分类 logits 和局部交叉熵；记录张量形状与梯度检查。
-3. 自检记录：token 数与 H_p×W_p 匹配、特殊 token 排除约定、非正方形网格、梯度有限、关闭时不影响全局输出。
-4. 方法说明：全局/局部结构、损失与 beta、错位风险、接入位置和后续实验。真实 token 网格必须从 patch embedding 输出读取，不能开平方猜测。
+1. `local_head.py`: takes patch features with special tokens removed plus explicit H_p/W_p, and pools them by horizontal region; the first version uses q=2 with a local identity classifier per region.
+2. Standalone example: feed simulated patch features and output local features, classification logits and local cross-entropy; record tensor shapes and gradient checks.
+3. Self-check records: token count matches H_p×W_p, special-token exclusion convention, non-square grid, finite gradients, no effect on the global output when switched off.
+4. Method notes: global/local structure, loss and beta, misalignment risk, integration point and follow-up experiments. The real token grid must be read from the patch-embedding output, not guessed by taking a square root.
 
-**完成标准：** 模块可独立运行，不需要等待 baseline 完整训练。模拟特征只验证模块接口与反向传播，不证明真实图像上有效。初版测试仍只用原全局特征，局部头仅作训练辅助监督。
+**Done when:** the module runs independently without waiting for full baseline training. Simulated features only verify the module interface and backpropagation, not effectiveness on real images. The first version still tests with the original global feature only; the local head is auxiliary training supervision.
 
-**本周不要求：** 完成改进模型训练或证明遮挡性能提升。B baseline 交付后，D 独立完成真实 token 接入和自己的改进训练配置，不要求 B 替 D 集成。
+**Not required this week:** training the improved model or showing better occlusion performance. After B delivers the baseline, D independently connects real tokens and builds their own improved training config; B is not expected to integrate it for D.
 
-## 7. E：评价与初步结果
+## 7. E: Evaluation and Initial Results
 
-**项目位置：** `src/evaluate.py`、`src/robustness.py`、`artifacts/manifests/`、`artifacts/results/`。
+**Location:** `src/evaluate.py`, `src/robustness.py`, `artifacts/manifests/`, `artifacts/results/`.
 
-必须交付：
+Required:
 
-1. 评价代码与协议说明：内部验证身份、IR→RGB、All-search/Single-shot、摄像头排除、固定 gallery、距离和有效 query 处理。
-2. 指标自检：人工距离矩阵手算 Rank-1/AP，与参考实现核对；检查 SYSU 身份级 CMC 和 cam3 query 排除 cam2 gallery 的规则。
-3. 固定 10 组 gallery 索引，种子 0–9；使用 A 的身份/摄像头信息和 B 的特征导出入口进行评价。
-4. `metrics.json`/`metrics.csv`：各次 Rank-1/mAP、均值、run_id、split、epoch、有效 query 数及 checkpoint checksum。
-5. 基于真实排序生成 Top-5 检索案例，注明样本选择方式；输出初步分析和限制。
-6. 在本文末尾的进度记录中汇总 baseline、训练进度、指标及证据路径，记录全组讨论、问题与下一步，供课堂口头汇报使用。
+1. Evaluation code and protocol notes: internal validation identities, IR→RGB, All-search/Single-shot, camera exclusion, fixed galleries, distance and handling of valid queries.
+2. Metric self-checks: hand-compute Rank-1/AP on a manual distance matrix and cross-check against a reference implementation; check SYSU identity-level CMC and the rule that cam3 queries exclude cam2 gallery images.
+3. Fixed indices for 10 galleries, seeds 0–9; evaluate using A's identity/camera information and B's feature-export entry point.
+4. `metrics.json`/`metrics.csv`: Rank-1/mAP per trial, mean, run_id, split, epoch, number of valid queries and checkpoint checksum.
+5. Top-5 retrieval cases from real rankings, stating how samples were selected; initial analysis and limitations.
+6. In the progress record at the end of this document, summarise the baseline, training progress, metrics and evidence paths, and record the team discussion, problems and next steps for the oral class report.
 
-**完成标准：** 指标来自本组实际权重，原始记录可追溯。默认报告内部 validation，不用测试集调参。10 次 gallery 重复不等于 10 次独立训练；若只有一次临时评价，如实标注 trial 数。
+**Done when:** metrics come from our own trained weights and raw records are traceable. Report the internal validation split by default and never tune on the test split. 10 gallery repetitions are not 10 independent training runs; if only one ad-hoc evaluation exists, state the number of trials honestly.
 
-E 自己检查评价正确性，不设其他成员的审批环节；上游数据或权重有问题时反馈给其负责人修复。每个人对自己的交付物负责。
+E checks evaluation correctness themselves; there is no approval step by other members. Problems with upstream data or weights are reported to their owner to fix. Everyone is responsible for their own deliverable.
 
-## 8. 只需遵守的交付顺序
+## 8. Delivery Order
 
-**Baseline 主线：A 数据接口 → B 训练权重与特征导出入口 → E 指标、案例和汇总。**
+**Baseline main line: A data interface → B trained weights and feature-export entry point → E metrics, cases and summary.**
 
-**改进模块：C 平滑过渡、D 局部监督同时独立准备 → B baseline 版本交付后，各自接入和训练自己的改进。** 本周仅要求模块及自检，改进训练留到后续。
+**Improvement modules: C smooth transition and D local supervision are prepared independently in parallel → after B delivers the baseline, each integrates and trains their own improvement.** This week only the modules and self-checks are required; improvement training comes later.
 
-| 顺序 | 交付 | 内部目标 |
+| Step | Delivery | Internal target |
 |---|---|---|
-| 1 | A 先交数据接口/划分；B 准备原模型；C/D 准备独立模块；E 准备评价器 | 10/24 起同时开始，数据接口目标 10/25 |
-| 2 | B 使用 A 的数据实际训练，交可评价权重、配置与导出命令；A 补 EDA，C/D 完成自检 | 数据接口可用后立即开始 |
-| 3 | E 使用权重完成指标和检索案例；五人各自交说明，E 汇总讨论记录 | 内部目标 10/28，且不晚于正式 checkpoint |
+| 1 | A delivers the data interface/splits; B prepares the original model; C/D prepare independent modules; E prepares the evaluator | All start 10/24; data interface target 10/25 |
+| 2 | B trains on A's data and delivers evaluable weights, configs and export command; A adds EDA; C/D finish self-checks | Starts as soon as the data interface is usable |
+| 3 | E produces metrics and retrieval cases from the weights; all five deliver their notes and E compiles the discussion record | Internal target 10/28, and no later than the official checkpoint |
 
-没有 C/D 先核验才允许 B 训练的依赖，也没有必须等 A 全部 EDA 完成才开工的要求。B 可用已核验小批数据先试跑，正式长训练前完成数据与输入检查。
+B's training does not depend on C/D verifying anything first, and nobody has to wait for all of A's EDA before starting. B may do a trial run on a verified small batch first and completes data and input checks before the full training run.
 
-后续联合方案由 D 在 B 的固定 baseline 版本上接入 C 已交付的调度模块，D 负责联合配置和训练；C 不需与 D 同时改同一个文件。E 统一评价各版本，B 继续负责原 baseline。
+The later combined model is integrated by D on B's fixed baseline version using C's delivered schedule module; D owns the combined config and training, and C does not need to edit the same file as D. E evaluates every version consistently; B continues to own the original baseline.
 
-## 9. 最终交付检查
+## 9. Final Delivery Checklist
 
-- [ ] A：数据/采样接口、划分检查和 EDA 初稿。
-- [x] B：实际训练的 baseline、配置、日志、权重和特征导出入口。
-- [ ] C：可独立执行的平滑过渡模块、自检与说明。
-- [ ] D：可独立执行的局部监督模块、自检与说明。
-- [ ] E：评价代码、自检、真实指标、案例与汇总。
-- [ ] 全组：讨论初步结果，写清问题、限制与后续任务。
-- [ ] 汇总页区分已完成训练、阶段性结果、模块原型和未完成项。
+- [ ] A: data/sampling interface, split checks and EDA draft.
+- [x] B: trained baseline, configs, logs, weights and feature-export entry point.
+- [x] C: standalone smooth-transition module, self-checks and notes.
+- [ ] D: standalone local-supervision module, self-checks and notes.
+- [x] E: evaluation code, self-checks, real metrics, cases and summary.
+- [ ] Whole team: discuss initial results; write down problems, limitations and follow-up tasks.
+- [ ] Summary page distinguishes completed training, interim results, module prototypes and unfinished items.
 
-课堂 checkpoint 不单建目录或代码包。最终项目仍整合为一个 Notebook：[submission/project.ipynb](submission/project.ipynb)；`checkpoints/` 仅保存模型权重及断点恢复状态，内容不上传 Git。
+No separate directory or code package is created for the class checkpoint. The final project is still integrated into one notebook: [submission/project.ipynb](submission/project.ipynb); `checkpoints/` only stores model weights and resume state and is not uploaded to Git.
 
+## 10. Progress Record This Week (for the class report)
 
-## 10. 本周进度记录（课堂汇报用）
+**Current status:** Data interface ready; M0 baseline trained for 24 epochs with validation features exported. The evaluator passes hand-computed self-tests and matches the PMT reference implementation; M0 (and the already-trained M1 and F) seed17 now have retrieval metrics on the internal validation split.
 
-**当前进度：** 数据接口已就绪，M0 baseline 已完成 24 epochs 训练及验证集特征导出；检索评价待完成。
-
-| 成员 | 已完成 | 待完成 | 下一步 |
+| Member | Done | To do | Next step |
 | :---: | --- | --- | --- |
-| A | 数据接口、采样器与真实数据检查 | EDA | 补充数据分析与样例 |
-| B | M0 seed17 训练、恢复与特征导出 | 本周任务已完成 | 向 E 交付 baseline 权重与特征 |
-| C | 待填写 | 待填写 | 灰度调度与边界检查 |
-| D | 待填写 | 待填写 | 局部头与网格、梯度检查 |
-| E | 待填写 | 检索指标 | 核验评价协议并复评 M0 |
+| A | Data interface, sampler and real-data checks | EDA | Add data analysis and examples |
+| B | M0 seed17 training, resume and feature export | This week's tasks complete | Deliver baseline weights and features to E (done) |
+| C | Smooth grayscale schedule `src/schedules.py` (linear / fixed expected exposure / off) wired into training; M1 and F configs; schedule self-tests (boundaries, equal expected exposure, rebuild from config and step); method write-up; M1 and F seed17 trained for 24 epochs on Katana and evaluated by E | End-to-end checkpoint-resume check; more seeds | Seeds 42/2026; training curves around the stage switch |
+| D | No commits yet: `src/local_head.py` is still a placeholder; only the scaffold M2/M3 configs exist | Local head, non-square token grid and gradient self-tests | Per the design: shape/gradient/small-sample checks by 10/29; if still not working by 10/31, keep the failure evidence and downgrade to exploratory work |
+| E | Evaluator (10 fixed galleries, cam3→cam2 exclusion, identity-level CMC, mAP/mINP, cross-seed summary); 14 hand-computed self-tests; cross-check vs PMT `eval_sysu`/`process_gallery_sysu` passed; M0/M1/F seed17 evaluated; M0 Top-5 retrieval cases | `metrics.csv` export; robustness evaluation (`src/robustness.py`); multi-seed summary | Summarise mean±SD once seeds 42/2026 arrive; failure-case analysis |
 
-### 证据与说明
+### Evidence and Notes
 
-- **A：** [数据接口说明](docs/data_interface.md)、[数据准备入口](scripts/prepare_data.py)。真实数据审计及 batch 检查均通过；本地记录见 `artifacts/manifests/data_audit.md` 和 `artifacts/results/data_check/check_report.md`。
-- **B：** [baseline 运行说明](docs/baseline.md)、[整合 Notebook](submission/project.ipynb)。Katana L40S 完成 M0 seed17 的 24 epochs；A+B 共 50 项测试及交付核验通过，已导出 IR 1,980 条、RGB 1,974 条验证特征。
-- **B 的本地交付：** 日志、配置与特征位于 `artifacts/results/dev_M0_seed17_katana_20261025_retry1/`；权重位于同名 `checkpoints/` 目录。AMP 问题已修复，正式作业成功结束；目前没有检索指标。
+- **A:** [Data interface notes](docs/data_interface.md), [data preparation entry point](scripts/prepare_data.py). Real-data audit and batch checks pass; local records in `artifacts/manifests/data_audit.md` and `artifacts/results/data_check/check_report.md`.
+- **B:** [Baseline usage notes](docs/baseline.md), [integrated notebook](submission/project.ipynb). M0 seed17 completed 24 epochs on Katana L40S; 50 A+B tests and delivery validation pass; validation features exported for 1,980 IR and 1,974 RGB images.
+- **B's delivery:** logs, configs and features in `artifacts/results/dev_M0_seed17_katana_20261025_retry1/`; weights in the matching `checkpoints/` directory. The AMP issue is fixed and the official job finished successfully. Retrieval metrics are reported by E below.
+- **C:** [Smooth transition method and checks](docs/smooth_transition.md), [schedule](src/schedules.py), [schedule tests](tests/test_schedule.py) (3 passing); merged into main (PR #1, #2). M1/F runs: `dev_M1_seed17_katana_20261027_l40s`, `dev_F_seed17_katana_20261027_retry1`; delivery validation PASS (24 epochs, export checksums and row alignment).
+- **D:** As of 2026-10-28 there is no D branch or commit on GitHub.
+- **E:** [Evaluation protocol and usage](docs/evaluation.md), [evaluator](src/evaluate.py), [self-tests](tests/test_evaluate.py), [reference cross-check](scripts/check_eval_reference.py), [retrieval-case script](scripts/retrieval_cases.py). SHA256 of all 6 feature `.npz` files delivered by B match their export records; all 3,954 validation images match the training manifest SHA256. Cross-check report `artifacts/results/eval_checks/reference.json`; fixed gallery `artifacts/manifests/gallery_val_all_single.json` (local, not in Git).
 
-**全组讨论：** 待实际讨论后填写；有指标时注明 run_id、训练进度、评价 split 和原始记录位置。
+### Initial results (compiled by E, 2026-10-28)
+
+Protocol: internal validation split (99 identities, not used for training), IR→RGB, All-search, single-shot; one training seed (17); mean over 10 fixed galleries (seeds 0–9); metrics in %. All three models use the same galleries; all 1,980 queries are valid.
+
+| Experiment | run_id | Training | mAP | mINP | Rank-1 | Rank-5 | Rank-10 | Rank-20 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| **M0 (PMT baseline)** | dev_M0_seed17_katana_20261025_retry1 | 24 epochs | **34.4** | 24.2 | **32.1** | 60.3 | 72.6 | 83.9 |
+| M1 (PMT + smooth transition) | dev_M1_seed17_katana_20261027_l40s | 24 epochs | 34.1 | 24.0 | 31.3 | 60.6 | 73.3 | 84.0 |
+| F (fixed-probability control) | dev_F_seed17_katana_20261027_retry1 | 24 epochs | 34.4 | 24.2 | 31.7 | 61.2 | 74.0 | 84.5 |
+
+- Variation across galleries (SD): mAP about 1.5–1.7, Rank-1 about 1.9–2.4.
+- Paired per-gallery differences vs M0: M1 mAP −0.3 (−1.0 to +0.5), Rank-1 −0.7; F mAP 0.0 (−0.9 to +0.9), Rank-1 −0.4.
+- Raw records: each run's `eval_all/metrics.json` (E's local copy, extracted from B's result packages; includes checkpoint and input SHA256).
+
+**Interpretation and limitations:**
+
+1. Our baseline is established: PMT M0 reaches mAP 34.4% and Rank-1 32.1% on the internal validation split, the reference point for later comparisons.
+2. M1 and F differ from M0 by less than the gallery variation, with a single training seed, so **we cannot yet tell whether the smooth transition helps or hurts**. Seeds 42/2026 are needed, aggregated by averaging galleries first and then taking mean±SD across seeds.
+3. The internal validation split has IR only from cam3 and RGB only from cam4/5 (no cam1/2/6): All-search is effectively cam3→cam4/5 and Indoor-search is impossible. Validation metrics are for internal comparison only and **cannot be compared directly with the paper's SYSU test results** (395 training identities, test split, full camera set).
+4. Top-5 retrieval cases (4 queries sampled at random from the 371 where Rank-1 is wrong but the correct identity is at #2–3; `artifacts/results/M0_seed17/retrieval_cases/near/`) show that dark clothing can appear bright in infrared, so colour and brightness cues fail, and the model confuses people with similar hair and build.
+
+**For team discussion (record conclusions here afterwards):**
+
+- Scheduling of seeds 42/2026 (M0, M1, and whether F needs more seeds).
+- Whether to state the limited camera coverage of the validation split separately in the report, or adjust the validation protocol.
+- M2/M3 (local supervision) should reuse the same gallery file and evaluation command once integrated.
+
+**Team discussion conclusions:** to be filled in after the actual discussion.
