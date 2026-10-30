@@ -48,7 +48,7 @@ src/
   train.py, training.py     # B：训练/完整恢复（已实现）
   export_features.py        # B：BN后归一化特征与元数据导出
   evaluate.py               # E：固定 gallery、SYSU 指标与跨种子汇总（已实现，待真实特征复评）
-  robustness.py             # E：固定遮挡/模糊扰动下的鲁棒性（已实现并自检，待真实权重运行）
+  robustness.py             # E：固定遮挡/模糊扰动下的鲁棒性（已实现并自检，M0/M1/F seed17 已运行，结果见 docs/evaluation.md）
 scripts/inspect_config.py    # 可直接运行的配置检查
 scripts/prepare_data.py      # A：一条命令准备数据（查找/下载、审计、接口检查）
 scripts/build_manifest.py    # A：manifest、划分、标签映射与数据审计

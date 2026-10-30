@@ -81,6 +81,24 @@ Self-tests (`tests/test_robustness.py`, 12 passing): band position and area for 
 
 Runtime on an RTX 5070 Ti Laptop GPU: about 2 minutes per condition for the 1,980 validation queries (single loader worker), about 17 minutes for all 9.
 
+**Results (2026-10-30, internal val, All-search, seed 17, mean of 10 fixed galleries; mAP / Rank-1 in %, drop in mAP points vs each model's clean row in brackets):**
+
+| Condition | M0 | M1 | F |
+| --- | --- | --- | --- |
+| clean | 34.4 / 32.0 | 34.1 / 31.4 | 34.4 / 31.7 |
+| occlusion top 10% | 32.1 / 29.2 (−2.3) | 31.9 / 28.9 (−2.2) | 32.0 / 29.0 (−2.4) |
+| occlusion top 20% | 28.8 / 25.2 (−5.6) | 28.4 / 24.8 (−5.7) | 28.7 / 25.0 (−5.7) |
+| occlusion middle 10% | 33.5 / 30.6 (−0.9) | 33.2 / 29.8 (−1.0) | 33.5 / 30.2 (−0.9) |
+| occlusion middle 20% | 32.5 / 29.6 (−1.9) | 32.1 / 28.6 (−2.0) | 32.5 / 29.0 (−1.9) |
+| occlusion bottom 10% | 31.0 / 28.4 (−3.4) | 30.6 / 27.6 (−3.5) | 30.9 / 27.9 (−3.5) |
+| occlusion bottom 20% | 26.2 / 22.1 (−8.2) | 25.8 / 21.5 (−8.3) | 26.1 / 21.8 (−8.3) |
+| blur σ=1 | 34.1 / 31.7 (−0.3) | 33.8 / 30.8 (−0.4) | 34.0 / 30.9 (−0.4) |
+| blur σ=2 | 33.1 / 30.4 (−1.2) | 32.8 / 29.4 (−1.3) | 32.9 / 29.5 (−1.5) |
+
+Checkpoint SHA256 of all three `last.pt` files matched the exported features; clean re-extraction matched B's export (min cosine 0.9996 / 0.9994 / 0.9998). The clean row comes from the re-extracted features, so it can differ from the first-results table by up to 0.1 point (GPU numerical noise).
+
+Observations: bottom occlusion hurts most (20%: about −8 mAP points), then top (about −5.6); middle occlusion and blur cost at most about 2 points. The three models degrade almost identically (differences ≤ 0.3 points, single seed), so S (M1) gives no robustness benefit over M0 or F under these perturbations. The M0 rows are the baseline for testing whether local supervision (M2/M3, D) reduces the occlusion drop (RQ2). Raw results: `artifacts/results/{M0,M1,F}_seed17/robustness/robustness.json` (local, not in Git).
+
 Artificial occlusion and blur are controlled stress tests, not the real occlusion distribution; they must not be used to tune methods. Natural occlusion examples are reported separately.
 
 ## Camera coverage of the internal validation split (important limitation)
@@ -103,4 +121,4 @@ All three share the same gallery file (fingerprint `d799087d813f…`); all 1,980
 
 ## Status
 
-The evaluator and its self-tests are complete and match the pinned PMT reference implementation; M0/M1/F seed17 have been re-evaluated on the internal validation split. The robustness tool is implemented and self-tested; it has not been run on real checkpoints yet because the trained weights (`last.pt`) are not available locally.
+The evaluator and its self-tests are complete and match the pinned PMT reference implementation; M0/M1/F seed17 have been re-evaluated on the internal validation split. The robustness tool is implemented, self-tested and has been run on the M0/M1/F seed17 checkpoints; M2/M3 will be run with the same conditions once D's checkpoints exist.
