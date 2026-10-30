@@ -1,13 +1,22 @@
-"""Download the exact ImageNet initialization linked by the PMT authors."""
+"""Download the exact ImageNet initialization linked by the PMT (ViT) or AGW/CAJ (ResNet-50) authors."""
+import argparse
 import hashlib
 import json
 from pathlib import Path
 import urllib.request
 
-URL = "https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-vitjx/jx_vit_base_p16_224-80ecf9dd.pth"
+URLS = {
+    "vit": "https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-vitjx/jx_vit_base_p16_224-80ecf9dd.pth",
+    # mangye16/Cross-Modal-Re-ID-baseline resnet.py model_urls["resnet50"].
+    "resnet50": "https://download.pytorch.org/models/resnet50-19c8e357.pth",
+}
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--model", choices=sorted(URLS), default="vit")
+    URL = URLS[parser.parse_args().model]
+    prefix = URL.rsplit("-", 1)[1].split(".")[0]
     target = Path(__file__).resolve().parents[1] / "checkpoints" / URL.rsplit("/", 1)[1]
     target.parent.mkdir(parents=True, exist_ok=True)
     if not target.exists():
@@ -16,7 +25,7 @@ def main():
         urllib.request.urlretrieve(URL, temporary)
         temporary.replace(target)
     digest = hashlib.sha256(target.read_bytes()).hexdigest()
-    if not digest.startswith("80ecf9dd"):
+    if not digest.startswith(prefix):
         raise RuntimeError(f"Pretrained hash does not match the published filename: {digest}")
     record = {"url": URL, "sha256": digest, "bytes": target.stat().st_size}
     target.with_suffix(".json").write_text(json.dumps(record, indent=2))
