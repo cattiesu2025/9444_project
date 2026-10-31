@@ -13,19 +13,19 @@
 
 老师要求增加 2 个 baseline。本组选 PMT 论文 SYSU-MM01 对比表中的 AGW 与 CAJ（CAJ 也是课程第 4 篇论文 P4）。V0 是去掉 PMT 组件的 ViT 消融下界，是否计入老师要求的 baseline 需在 checkpoint 上向老师确认。
 
-## 2. 当前状态（2026-10-30）
+## 2. 当前状态（2026-10-31 更新）
 
 | 项目 | 状态 | 证据 |
 | --- | --- | --- |
 | 数据接口、审计、采样器（A） | 已完成 | [数据接口说明](docs/data_interface.md) |
 | EDA（A） | 未完成 | — |
 | M0 seed17 训练与验证集特征（B） | 已完成，24 epochs | `artifacts/results/dev_M0_seed17_katana_20261025_retry1/` |
-| V0 代码与配置（B） | 已实现，未训练 | [configs/experiments/V0.json](configs/experiments/V0.json) |
+| V0 seed17（B） | 已训练 24 epochs 并评价 | `artifacts/results/dev_V0_seed17_katana_20261030/` |
 | S 调度模块（C） | 已完成；M1、F seed17 已训练并导出特征 | [docs/smooth_transition.md](docs/smooth_transition.md)、`artifacts/results/dev_M1_*`、`dev_F_*` |
 | 局部监督模块（D） | 已实现并有自检，在分支 `feat/local-supervision`，未合并；M2 未训练 | `src/local_head.py`、`tests/test_local_head.py`、`docs/local_supervision.md`（该分支） |
-| 评价器（E） | 已完成：14 项手算自检；与 PMT `eval_sysu`/`process_gallery_sysu`（commit `0b31da9`）对照通过；M0/M1/F seed17 已评价 | [评价说明](docs/evaluation.md)、`src/evaluate.py`、PR #3 |
+| 评价器（E） | 已完成：14 项手算自检；与 PMT `eval_sysu`/`process_gallery_sysu`（commit `0b31da9`）对照通过；M0/M1/F/V0/AGW/CAJ/CAJ 修正版 seed17 已评价 | [评价说明](docs/evaluation.md)、`src/evaluate.py`、PR #3 |
 | 鲁棒性扰动（E） | 已完成：9 种固定扰动（上/中/下遮挡 10%/20%、模糊 σ=1/2），只扰动 IR query；12 项自检；M0/M1/F seed17 已运行 | [评价说明 · 鲁棒性](docs/evaluation.md)、`src/robustness.py` |
-| AGW / CAJ 代码 | 已实现并通过 14 项自检，未训练 | 分支 `feat/agw-caj-baselines`：`src/agw.py`、`src/train_agw.py` |
+| AGW / CAJ seed17 | 已训练并评价；CAJ 按作者代码训练时崩溃，结果无效；修正一处负样本加权后重跑成功（见 §4.7） | `artifacts/results/dev_AGW_seed17_katana_20261030/`、`dev_CAJ_seed17_katana_20261030/`、`dev_CAJfix_seed17_katana_20261031/` |
 
 **M0/M1/F seed17 已有检索指标（内部 val，All-search，10 组固定 gallery 均值）：**
 
@@ -36,6 +36,10 @@
 | F | 34.4 | 24.2 | 31.7 | 61.2 | 74.0 | 84.5 |
 
 三者差别小于 gallery 间波动（mAP SD 约 1.5–1.7，Rank-1 SD 约 1.9–2.4），且只有一个训练种子，暂不能判断 S 的作用。内部 val 只有 cam3 query 和 cam4/5 gallery，无法做 Indoor-search，数值不能与论文测试集结果直接比较。
+
+**四个 baseline 都已有检索指标（§4.5）。** 权重和结果按 `<实验>_seed17_{checkpoint,results}.zip` 打包存放在 Google Drive，不入 Git。
+
+**配置冻结推迟（2026-10-31 决定）：** 设计中 10/31 的冻结门槛（首轮 M0–M3 完成或明确降级，[010 §12.3](010_Project_Design.md)）未满足：局部监督模块尚未合并，M2/M3 未训练，S 窗口与 L beta 的探索也未完成。组内决定推迟冻结，不降级；后续日期待 M2/M3 首轮完成后重排。下周 tutorial 只交付已选定的 baseline 及其对比结果，并与 tutor 讨论 §7 的问题。
 
 ## 3. 上周未完成工作
 
@@ -56,10 +60,11 @@
 
 | ID | 方法 | 主干 | 训练入口 | 负责人 | 状态 |
 | --- | --- | --- | --- | --- | --- |
-| V0 | ViT + ID + 全局 hard-triplet（无灰度阶段、MSEL、DCL） | ViT-B/16 | `src.train --experiment V0` | B | 待训练 |
-| M0 | 完整 PMT | ViT-B/16 | `src.train --experiment M0` | B | 已训练 |
-| AGW | 双流 ResNet-50 + Non-local + GeM，ID + WRT | ResNet-50 | `src.train_agw --experiment AGW` | 待定 | 待训练 |
-| CAJ | AGW 基础上加通道交换/灰度增强，ID + ADP 平方差损失 | ResNet-50 | `src.train_agw --experiment CAJ` | 待定 | 待训练 |
+| V0 | ViT + ID + 全局 hard-triplet（无灰度阶段、MSEL、DCL） | ViT-B/16 | `src.train --experiment V0` | B | 已训练并评价 |
+| M0 | 完整 PMT | ViT-B/16 | `src.train --experiment M0` | B | 已训练并评价 |
+| AGW | 双流 ResNet-50 + Non-local + GeM，ID + WRT | ResNet-50 | `src.train_agw --experiment AGW` | 待定 | 已训练并评价 |
+| CAJ | AGW 基础上加通道交换/灰度增强，ID + ADP 平方差损失 | ResNet-50 | `src.train_agw --experiment CAJ` | 待定 | 已训练；训练崩溃，结果无效 |
+| CAJ（本组修正） | 同 CAJ，只把负样本加权改为在有效位置上取最大值 | ResNet-50 | `src.train_agw --experiment CAJ_fix` | 待定 | 已训练并评价 |
 
 ### 4.2 统一的部分（四个 baseline 必须一致）
 
@@ -99,13 +104,15 @@ AGW/CAJ 作者原本用 train+val 395 个身份训练，本组改为 296 个，�
 
 | 方法 | 主干 | 训练身份 | 输入 | Rank-1 | Rank-10 | mAP | 参数量 | FLOPs | 训练时长 | GPU |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| V0 | ViT-B/16 | 296 | 256×128 | | | | | | | L40S |
-| M0 | ViT-B/16 | 296 | 256×128 | | | | | | | L40S |
-| AGW | ResNet-50 | 296 | 288×144 | | | | | | | L40S |
-| CAJ | ResNet-50 | 296 | 288×144 | | | | | | | L40S |
-| 论文报告值（参考，不可直接比） | — | 395 | — | | | | — | — | — | — |
+| V0 | ViT-B/16 | 296 | 256×128 | 29.0 ± 1.6 | 69.8 | 33.0 ± 1.5 | 86.0M | 37.7G | 0.77 h | L40S |
+| M0 | ViT-B/16 | 296 | 256×128 | 32.1 ± 2.4 | 72.6 | 34.4 ± 1.6 | 86.0M | 37.7G | 0.99 h | L40S |
+| AGW | ResNet-50 | 296 | 288×144 | 26.9 ± 2.2 | 66.7 | 30.2 ± 1.6 | 24.2M | 10.3G | 1.89 h | L40S |
+| CAJ（作者代码，训练崩溃，无效） | ResNet-50 | 296 | 288×144 | 7.0 ± 1.2 | 34.0 | 11.0 ± 0.7 | 24.2M | 10.3G | 3.57 h | L40S |
+| CAJ（本组修正实现） | ResNet-50 | 296 | 288×144 | 33.1 ± 2.4 | 72.3 | 34.4 ± 1.9 | 24.2M | 10.3G | 3.58 h | L40S |
+| AGW 论文报告值（参考，不可直接比） | ResNet-50 | 395 | 288×144 | 47.50 | — | 47.65 | — | — | — | — |
+| CAJ 论文报告值（参考，不可直接比；含翻转测试增强） | ResNet-50 | 395 | 288×144 | 69.88 | — | 66.89 | — | — | — | — |
 
-指标为 10 次 gallery 评价的均值 ± 标准差，均在内部验证集上。
+指标为百分比，Rank-1 和 mAP 为 10 次固定 gallery 评价的均值 ± 标准差（只反映 gallery 抽样差异，不是训练种子间的波动），均在内部验证集上，训练种子 17。参数量含分类器；FLOPs 为单张图片一次前向（2 × 乘加）；训练时长为 L40S 作业总墙钟时间，含试跑（CAJ 修正版为 10 epoch，其余 2 epoch）和特征导出。论文报告值取自作者仓库 README（固定 commit `e817a26`），是 SYSU-MM01 官方测试集的结果，训练身份、相机覆盖和测试设置都不同。
 
 ### 4.6 要回答的问题
 
@@ -113,6 +120,44 @@ AGW/CAJ 作者原本用 train+val 395 个身份训练，本组改为 296 个，�
 - **AGW 和 M0 比：** 在本组设置下，PMT 与已发表的 CNN 方法（AGW）相比表现如何？两者的主干和训练方法都不同，差距不能只归因于主干（Transformer 还是 CNN）。
   - PMT 仓库 README 中的 `AGW*` 是"PMT 方法 + AGW 主干 + 随机擦除"，不是 AGW 原方法，代码也未公开。它的 67.09% / 64.25% 不能作为本组 AGW 行的参考值。本周不做 `AGW*`；如果主表完成后还有 GPU 时间，可以把"AGW 网络 + PMT 训练"作为选做实验，用来分开主干和训练方法两个因素，并标为本组实现。
 - **CAJ 和 AGW 比：** 只加通道/灰度增强能带来多少提升？这为 S（平滑灰度过渡）提供对照：如果简单增强已有同等收益，S 的价值就要打折扣。
+
+### 4.7 结果与问题（2026-10-31）
+
+**流程：** 每个新模型先跑 2 epoch 试跑并用评价器打分，确认能学到东西后再接续完整训练。试跑 Rank-1：V0 24.9%、AGW 14.4%、CAJ 11.8%，均远高于随机水平（约 1%）。
+
+**同一组 10 个 gallery 上的配对差值（相对 M0，百分点）：**
+
+| 对比 | mAP 均值（范围） | Rank-1 均值（范围） | M0 更高的 gallery 数 |
+| --- | --- | --- | --- |
+| V0 − M0 | −1.4（−2.8 至 −0.4） | −3.1（−7.2 至 −0.8） | 10/10 |
+| AGW − M0 | −4.1（−6.4 至 −2.5） | −5.1（−8.1 至 −1.8） | 10/10 |
+| CAJ 修正版 − M0 | +0.0（−1.4 至 +1.3） | +1.1（−0.9 至 +3.7） | mAP 4/10，Rank-1 3/10 |
+
+CAJ 修正版 − AGW：mAP +4.1（+2.3 至 +6.5），Rank-1 +6.2（+3.3 至 +7.7），10 个 gallery 全部更高。
+
+**初步回答 §4.6 的问题（单一训练种子）：**
+
+- **V0 vs M0：** PMT 的灰度阶段、MSEL 和 DCL 带来小幅但在 10 个 gallery 上一致的提升；V0 的 mINP 略高（24.7 vs 24.2）。需要多种子才能确认。
+- **AGW vs M0：** M0 高约 4 个 mAP 点，计算量约为 AGW 的 3.6 倍。主干和训练方法都不同，差距不能只归因于主干。
+- **CAJ vs AGW（用修正版）：** CAJ 修正版比 AGW 高 4.1 mAP / 6.2 Rank-1，10 个 gallery 全部更高，与论文中的先后顺序一致。但两者除通道增强外，还差随机擦除、ADP 损失、batch 大小、epoch 数和负样本加权修正（AGW 用的是原始加权），所以差距不能全部归因于通道增强。
+- **CAJ 修正版 vs M0：** mAP 相同（34.4），Rank-1 高 1.1，gallery 间差值有正有负，单种子下分不出高低。ResNet-50 计算量约为 M0 的 1/4，但 GPU 时间约为 3.6 倍。这对 S 的意义是：简单的通道增强已能让 CNN 达到 M0 的水平，S 要超过 M0 且差距大于 gallery 波动，才能说明它的价值。
+
+**CAJ 训练崩溃：**
+
+- 第 1–5 epoch：ADP 损失停在截断值 88，梯度为 0，只有 ID 损失在训练（训练 ID 准确率升到 0.90）。
+- 第 6 epoch：ADP 离开截断区，产生很大的梯度。第 7 epoch 训练 ID 准确率从 0.85 跌到 0.03（接近随机），ADP 降到 ln 2 ≈ 0.69，说明特征塌缩到几乎同一点。
+- 之后模型从接近零的状态慢慢重新学习，训练准确率最终回到 0.98，但验证 Rank-1 只有 7.0%，低于它自己的 2 epoch 试跑（11.8%）。
+- **原因：** AGW/CAJ 共用的 `softmax_weights`（`src/agw.py`）在计算负样本权重时，取最大值的范围包含了被屏蔽的 0。特征模长约 50 时，所有负样本权重下溢，`closest_negative` ≈ 0，ADP 只把正样本拉近，没有任何力量推开负样本。作者代码完全相同，不是移植错误。AGW 的 WRT 损失梯度有界，所以 AGW 训练正常。
+- **修正方案：** 只在有效位置上取最大值。初始化时 `closest_negative` 从 ≈ 0 恢复到 ≈ 26，饱和样本比例从 100% 降到 42%。修正后必须标为"本组修正实现"，与作者代码区分。
+
+**修正后重跑（CAJ_fix）：** `softmax_weights` 新增 `masked_max` 选项（只在有效位置取最大值，被屏蔽位置在 `exp` 前设为 −inf），配置 `configs/experiments/CAJ_fix.json` 与 `CAJ.json` 只差这一项，数据、增强、损失、学习率和种子都不变。
+
+- 10 epoch 试跑越过第 6 epoch 未崩溃，Rank-1 21.1%，于是接续到 100 epoch。
+- 训练曲线：ADP 从 1.65 平稳降到 0.01（不再停在 88），训练 ID 准确率一路升到 0.997，没有下跌；63,300 步全部有效，无非有限值。
+- 结果：mAP 34.4 / Rank-1 33.1（作者代码版为 11.0 / 7.0）。
+- 作者代码版本的结果保留为复现失败的证据；主表中 CAJ 修正版标为"本组修正实现"。
+
+**待确认：** 在 checkpoint 上向老师确认，CAJ 修正版能否作为 baseline 使用。AGW 用的是原始加权（WRT 下训练正常）；如果需要严格一致，可以用修正加权重跑 AGW（约 1.9 GPU 小时）。
 
 ## 5. 分工与时间
 
@@ -132,6 +177,7 @@ AGW/CAJ 作者原本用 train+val 395 个身份训练，本组改为 296 个，�
 | 评价器推迟 | 所有结果都会被推迟；E 优先做评价器，其他人不等待，继续训练并导出特征 |
 | AGW/CAJ 训练时间过长或 GPU 排队 | 分段运行并用 `--resume` 接续；实在不够时先完成 AGW，CAJ 标为"阶段性结果"，注明实际 epoch 数 |
 | AGW/CAJ 短训练指标接近随机水平 | 先检查身份映射、模态路由和标签，不提交完整训练 |
+| 作者代码在本组设置下训练不稳定（CAJ 已发生，已修正重跑） | 逐项检查各损失项的曲线，而不只看总损失；修正后的版本单独标注为本组实现 |
 | 老师认为 V0 不算 baseline | AGW、CAJ 已满足"再加 2 个"；V0 保留为消融下界 |
 | 本地磁盘不足 | AGW/CAJ 的测试会写入多个 ResNet-50 checkpoint；运行测试前确认至少有几 GB 空闲 |
 
@@ -139,7 +185,8 @@ AGW/CAJ 作者原本用 train+val 395 个身份训练，本组改为 296 个，�
 
 1. V0（去掉 PMT 组件的 ViT）是否算作一个 baseline？
 2. AGW/CAJ 用作者代码移植到本组划分上重新训练是否可以，还是需要独立实现？
-3. 外部 baseline 只跑一个种子是否足够？
+3. CAJ 按作者代码训练会崩溃；本组只修正了负样本加权中的一处取最大值（其余代码和设置不变），修正版能否作为 CAJ baseline 报告？
+4. 外部 baseline 只跑一个种子是否足够？
 
 ## 8. 进度记录（课堂汇报用）
 

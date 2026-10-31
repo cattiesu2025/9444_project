@@ -122,20 +122,26 @@ def pairwise_distance(x):
     return (square + square.t() - 2 * x @ x.t()).clamp(min=1e-12).sqrt()
 
 
-def softmax_weights(dist, mask):
-    max_v = torch.max(dist * mask, dim=1, keepdim=True)[0]
-    diff = dist - max_v
+def softmax_weights(dist, mask, masked_max=False):
+    """Upstream takes the row max over dist * mask, so masked-out zeros join it; with large distances every
+    negative weight then underflows and closest_negative is ~0. masked_max=True (CAJ_fix) uses valid entries only,
+    and sets masked entries to -inf before exp so they cannot overflow."""
+    if masked_max:
+        valid = dist.masked_fill(mask == 0, float("-inf"))
+        diff = valid - valid.max(dim=1, keepdim=True)[0]
+    else:
+        diff = dist - torch.max(dist * mask, dim=1, keepdim=True)[0]
     z = torch.sum(torch.exp(diff) * mask, dim=1, keepdim=True) + 1e-6
     return torch.exp(diff) * mask / z
 
 
-def weighted_extremes(features, labels, alpha=1.0):
+def weighted_extremes(features, labels, alpha=1.0, masked_max=False):
     """Softmax-weighted furthest positive / closest negative per anchor (self-match included, as upstream)."""
     dist = pairwise_distance(features)
     same = labels[:, None].eq(labels[None, :]).float()
     dist_ap, dist_an = dist * same, dist * (1 - same)
-    furthest_positive = (dist_ap * softmax_weights(dist_ap * alpha, same)).sum(1)
-    closest_negative = (dist_an * softmax_weights(-dist_an * alpha, 1 - same)).sum(1)
+    furthest_positive = (dist_ap * softmax_weights(dist_ap * alpha, same, masked_max)).sum(1)
+    closest_negative = (dist_an * softmax_weights(-dist_an * alpha, 1 - same, masked_max)).sum(1)
     return furthest_positive, closest_negative
 
 
@@ -145,9 +151,9 @@ def wrt(features, labels):
     return F.soft_margin_loss(negative - positive, torch.ones_like(positive))
 
 
-def adp(features, labels, alpha=1.0, gamma=1.0, square=True):
+def adp(features, labels, alpha=1.0, gamma=1.0, square=True, masked_max=False):
     """CAJ TripletLoss_ADP; square=True is the enhanced squared difference used for SYSU."""
-    positive, negative = weighted_extremes(features, labels, alpha)
+    positive, negative = weighted_extremes(features, labels, alpha, masked_max)
     if not square:
         return F.soft_margin_loss(gamma * (negative - positive), torch.ones_like(positive))
     diff = ((positive - negative).pow(2) * gamma).clamp(max=88)
@@ -166,7 +172,8 @@ class AGWLoss:
         if self.cfg["method"] == "ID+WRT":
             triplet = wrt(features, labels)
         elif self.cfg["method"] == "ID+ADP":
-            triplet = adp(features, labels, self.cfg["alpha"], self.cfg["gamma"], self.cfg["square"])
+            triplet = adp(features, labels, self.cfg["alpha"], self.cfg["gamma"], self.cfg["square"],
+                          self.cfg.get("masked_max", False))
         else:
             raise ValueError(f"Unknown AGW/CAJ loss {self.cfg['method']}")
         return {"total": identity + triplet, "id": identity, "triplet": triplet}

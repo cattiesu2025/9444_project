@@ -2,18 +2,18 @@
 
 基于 **PMT（Progressive Modality-shared Transformer）**，研究平滑灰度过渡（S）与局部特征监督（L），在 SYSU-MM01 上完成受控消融与检索评价。
 
-> 数据接口（A）与 PMT baseline 实现（B）已具备，A+B 共 50 项自检通过。B 已在 Katana 完成 M0 seed17 的 24 epochs 训练并导出验证集特征，配置、日志和权重均已保存；E 的检索评价待执行，目前没有检索指标。详见 [B 的方法与运行说明](docs/baseline.md)。
+> 数据接口（A）、PMT baseline（B）和评价器（E）已完成并通过自检。四个 baseline（V0、M0、AGW、CAJ）seed17 均已在 Katana 训练，并在内部验证集上用同一组 10 个固定 gallery 评价：M0 mAP 34.4 / Rank-1 32.1，V0 33.0 / 29.0，AGW 30.2 / 26.9。CAJ 按作者代码训练时发生特征塌缩（7.0% Rank-1），结果无效；修正一处负样本加权后重跑（`CAJ_fix`），达到 mAP 34.4 / Rank-1 33.1，与 M0 持平。原因和修正见[本周计划 §4.7](012_Weekly_Checkpoint_Deliverables.md)。详见[评价说明](docs/evaluation.md)和[整合 Notebook](submission/project.ipynb) §5。
 
 ## 项目入口
 
 - [完整设计与研究问题](010_Project_Design.md)
-- [本周进度与课堂汇报](011_Weekly_Checkpoint_Deliverables.md)
+- [本周计划：评价器与四个 baseline 对比](012_Weekly_Checkpoint_Deliverables.md)（上周见 [011](011_Weekly_Checkpoint_Deliverables.md)）
 - [工程架构与接口](docs/architecture.md)
 - [数据接口说明（A）](docs/data_interface.md)
 - [PMT baseline 说明与 Katana 运行（B）](docs/baseline.md)
 - [检索评价协议与运行（E）](docs/evaluation.md)
 - [代码来源与复现差异登记](ATTRIBUTION.md)
-- [整合 Notebook（baseline 已写入）](submission/project.ipynb)
+- [整合 Notebook（baseline 与四个 baseline 对比已写入）](submission/project.ipynb)
 - [Notebook 结构与评分覆盖](submission/README.md)
 - [课程评分标准](COMP9444_Group_Project_Marking_Criteria.pdf)
 
@@ -76,7 +76,7 @@ python scripts/inspect_config.py --experiment M3
 
 以上 clone 命令适用于框架提交并推送后。已有本地项目无需再次 clone。配置检查仅依赖 Python 标准库（Python ≥3.10），输出合并配置，不下载数据、不训练模型。`--experiment` 支持表中所有实验 ID。
 
-本地已验证环境见 `requirements-lock.txt`（Python 3.11.15、PyTorch 2.14.1，macOS ARM）；Katana CUDA 环境需在实际计算节点另行验证和锁定。模型/损失、训练/恢复与导出命令见 [baseline.md](docs/baseline.md)，PBS 模板为 `scripts/katana/train.pbs`。测试通过不表示已完成真实训练。
+本地已验证环境见 `requirements-lock.txt`（Python 3.11.15、PyTorch 2.14.1，macOS ARM）；Katana CUDA 环境需在实际计算节点另行验证和锁定。模型/损失、训练/恢复与导出命令见 [baseline.md](docs/baseline.md)。PBS 模板：ViT 系列（V0/M0/M1/F）用 `scripts/katana/train.pbs`，AGW/CAJ/CAJ_fix 用 `scripts/katana/train_agw.pbs`（`EXPERIMENT=` 指定）；加 `PILOT_EXPORT=1` 会在短训练后把特征导出到 `<run>/pilot/`，用于开训前的评价检查。测试通过不表示已完成真实训练。
 
 ## 数据与评价约定
 
@@ -129,9 +129,10 @@ loader, sampler, dataset, label_map = get_train_loader("M0")   # final=True 用 
 - [x] B 的模型、损失、训练恢复和导出实现；真实数据 3 步短跑。
 - [x] 评价器正确性验证（E）：手算自检 + PMT `eval_sysu`/`process_gallery_sysu` 对照通过；M0/M1/F seed17 已在内部 val 复评。
 - [x] 本组实际训练的 M0 baseline（seed17，24 epochs）。
+- [x] 四个 baseline 对比（seed17）：V0、AGW 已训练并评价；CAJ 按作者代码训练崩溃，修正版（`CAJ_fix`）已重跑并评价，能否作为 baseline 待向老师确认。
 - [ ] S/L 模块、M0–M3 消融与 F/Q 控制。
 - [ ] 最终冻结配置训练、鲁棒性与错误分析。
-- [x] 整合 Notebook 结构与 baseline 章节（其余实验/评价仍待补齐）。
+- [x] 整合 Notebook 结构、baseline 章节与四个 baseline 检索对比（扩展实验仍待补齐）。
 - [ ] 最终完整 Notebook、正文不超过 4 页的报告、全员展示。
 
 内部目标为 2026-11-15 形成可提交版本，2026-11-18 是内部暂定截止日；正式日期以课程公告为准。

@@ -30,8 +30,8 @@ def build_loader(cfg, args, seed, pin_memory):
 def run(args):
     checkpoint = load_checkpoint(args.resume) if args.resume else None
     cfg = checkpoint["config"] if checkpoint else load_config(args.experiment)
-    if cfg["experiment"] not in ("AGW", "CAJ") or cfg["model"]["backbone"] != BACKBONE:
-        raise ValueError("This entry point supports AGW/CAJ only")
+    if cfg["experiment"] not in ("AGW", "CAJ", "CAJ_fix") or cfg["model"]["backbone"] != BACKBONE:
+        raise ValueError("This entry point supports AGW/CAJ/CAJ_fix only")
     if checkpoint and checkpoint["run_id"] != args.run_id:
         raise ValueError("Resume requires the original --run-id")
     seed = checkpoint["seed"] if checkpoint else args.seed
@@ -144,7 +144,7 @@ def run(args):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--experiment", choices=("AGW", "CAJ"), default="AGW")
+    parser.add_argument("--experiment", choices=("AGW", "CAJ", "CAJ_fix"), default="AGW")
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--root")
     parser.add_argument("--pretrained")

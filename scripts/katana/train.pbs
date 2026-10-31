@@ -48,3 +48,8 @@ if [[ "${MAX_STEPS:-20}" == 0 && "${EXPORT_ON_COMPLETE:-1}" == 1 ]]; then
     "$PMT_PYTHON" -m src.export_features --checkpoint "checkpoints/$RUN_ID/last.pt" --modality ir --output "artifacts/results/$RUN_ID/query_val.npz" --device cuda --batch-size 64
     "$PMT_PYTHON" -m src.export_features --checkpoint "checkpoints/$RUN_ID/last.pt" --modality rgb --output "artifacts/results/$RUN_ID/gallery_pool_val.npz" --device cuda --batch-size 64
 fi
+# Pilot runs export into a subdirectory so the final export path stays free for the resumed full run.
+if [[ "${PILOT_EXPORT:-0}" == 1 ]]; then
+    "$PMT_PYTHON" -m src.export_features --checkpoint "checkpoints/$RUN_ID/last.pt" --modality ir --output "artifacts/results/$RUN_ID/pilot/query_val.npz" --device cuda --batch-size 64
+    "$PMT_PYTHON" -m src.export_features --checkpoint "checkpoints/$RUN_ID/last.pt" --modality rgb --output "artifacts/results/$RUN_ID/pilot/gallery_pool_val.npz" --device cuda --batch-size 64
+fi

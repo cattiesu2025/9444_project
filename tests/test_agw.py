@@ -32,9 +32,11 @@ def small_cfg(experiment):
 
 
 def test_configs_follow_upstream():
-    agw, caj = load_config("AGW"), load_config("CAJ")
+    agw, caj, fix = load_config("AGW"), load_config("CAJ"), load_config("CAJ_fix")
     assert agw["training"]["epochs"] == 81 and caj["training"]["epochs"] == 100
     assert agw["loss"]["method"] == "ID+WRT" and caj["loss"]["method"] == "ID+ADP"
+    assert "masked_max" not in caj["loss"] and fix["loss"]["masked_max"] is True
+    assert {k: v for k, v in fix.items() if k not in ("experiment", "loss")} == {k: v for k, v in caj.items() if k not in ("experiment", "loss")}
     for cfg in (agw, caj):
         assert cfg["model"]["image_size"] == [288, 144]
         assert cfg["data"]["train_identities"] == 296 and cfg["data"]["evaluation_split"] == "val"
@@ -104,6 +106,26 @@ def test_weighted_mining_matches_loop_reference():
     torch.testing.assert_close(negative, expected_n, rtol=1e-5, atol=1e-5)
     torch.testing.assert_close(wrt(x, labels), torch.nn.functional.softplus(expected_p - expected_n).mean(),
                                rtol=1e-5, atol=1e-5)
+
+
+def test_masked_max_fixes_negative_underflow():
+    # Pre-BN pooled features have norm ~50: upstream's max includes masked-out zeros, so negative weights underflow.
+    x = 50 * torch.nn.functional.normalize(torch.randn(12, 8, dtype=torch.float64), dim=1)
+    labels = torch.tensor([0, 0, 1, 1, 2, 2] * 2)
+    expected_p, expected_n = reference_extremes(x, labels)
+    upstream_p, upstream_n = weighted_extremes(x, labels)
+    fixed_p, fixed_n = weighted_extremes(x, labels, masked_max=True)
+    for got, expected in ((upstream_p, expected_p), (fixed_p, expected_p), (fixed_n, expected_n)):
+        torch.testing.assert_close(got, expected, rtol=1e-5, atol=1e-5)    # 1e-6 slack in the softmax denominator
+    assert upstream_n.max() < 1e-3 < expected_n.min()
+    huge = (500 * x).requires_grad_()    # masked entries must not overflow exp at any scale
+    adp(huge, labels, masked_max=True).backward()
+    assert torch.isfinite(huge.grad).all()
+    small = torch.randn(12, 5, dtype=torch.float64)    # no underflow: both versions agree
+    torch.testing.assert_close(weighted_extremes(small, labels)[1], weighted_extremes(small, labels, masked_max=True)[1],
+                               rtol=1e-4, atol=1e-4)
+    assert AGWLoss(load_config("CAJ_fix")["loss"])({"pool_feature": x, "logits": torch.zeros(12, 3)}, labels)["triplet"] \
+        == adp(x, labels, masked_max=True)
 
 
 def test_adp_squared_difference_direction():
@@ -180,7 +202,7 @@ def test_caj_batch_layout(data):
     assert not torch.equal(batch["images"][:n], view1)
 
 
-@pytest.mark.parametrize("experiment", ["AGW", "CAJ"])
+@pytest.mark.parametrize("experiment", ["AGW", "CAJ", "CAJ_fix"])
 def test_entrypoint_resume_and_export(data, tmp_path, monkeypatch, experiment):
     import src.train_agw as training
     root, rows = data
@@ -213,7 +235,7 @@ def test_entrypoint_resume_and_export(data, tmp_path, monkeypatch, experiment):
         torch.testing.assert_close(value, resumed["model"][key], rtol=0, atol=0)
     records = [json.loads(l) for l in (tmp_path / "artifacts/results/resumed/train.jsonl").read_text().splitlines()]
     assert [r["global_step"] for r in records] == [1, 2, 3, 4]
-    assert {r["batch_rows"] for r in records} == {12 if experiment == "CAJ" else 8}
+    assert {r["batch_rows"] for r in records} == {8 if experiment == "AGW" else 12}
     assert records[0]["lr"] == pytest.approx([1e-4, 1e-3]) and records[-1]["lr"] == pytest.approx([1e-5, 1e-4])
     assert json.loads((tmp_path / "artifacts/results/resumed/summary.json").read_text())["status"] == "completed"
 
