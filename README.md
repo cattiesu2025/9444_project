@@ -122,18 +122,31 @@ loader, sampler, dataset, label_map = get_train_loader("M0")   # final=True 用 
 
 ## 交付与进度
 
+### 已完成
+
 - [x] 项目目录、配置模板与 README。
-- [ ] 锁定作者代码版本、许可证与训练依赖。
-- [x] 数据接口与采样器（合成数据自检通过）。
-- [x] 本机真实数据审计与真实 batch 检查。
+- [x] 数据接口与采样器（合成数据自检通过）；本机真实数据审计与真实 batch 检查。
 - [x] B 的模型、损失、训练恢复和导出实现；真实数据 3 步短跑。
-- [x] 评价器正确性验证（E）：手算自检 + PMT `eval_sysu`/`process_gallery_sysu` 对照通过；M0/M1/F seed17 已在内部 val 复评。
-- [x] 本组实际训练的 M0 baseline（seed17，24 epochs）。
-- [x] 四个 baseline 对比（seed17）：V0、AGW 已训练并评价；CAJ 按作者代码训练崩溃，修正版（`CAJ_fix`）已重跑并评价，能否作为 baseline 待向老师确认。
-- [ ] S/L 模块、M0–M3 消融与 F/Q 控制。
-- [ ] 最终冻结配置训练、鲁棒性与错误分析。
-- [x] 整合 Notebook 结构、baseline 章节与四个 baseline 检索对比（扩展实验仍待补齐）。
-- [ ] 最终完整 Notebook、正文不超过 4 页的报告、全员展示。
+- [x] 评价器正确性验证（E）：手算自检 + PMT `eval_sysu`/`process_gallery_sysu` 对照通过；鲁棒性扰动工具及 M0/M1/F 运行。
+- [x] 四个 baseline 对比（seed17，内部 val）：V0、M0、AGW 已训练并评价；CAJ 按作者代码训练崩溃，修正版（`CAJ_fix`）已重跑并评价。
+- [x] S 模块（C）；M1、F seed17 已训练并评价。
+- [x] 整合 Notebook 结构、baseline 章节与 baseline 检索对比。
+
+### 剩余工作（按顺序）
+
+配置冻结已推迟（见 [012 §2](012_Weekly_Checkpoint_Deliverables.md)）。第 2–6 步日期待 M2/M3 首轮完成后重排；规则和理由见 [设计文档](010_Project_Design.md)，其 §12.3 中的日期以本节为准。
+
+| 步骤 | 内容 | 负责人 | 日期 |
+| :---: | --- | --- | --- |
+| 1 | 下周 tutorial：交付 baseline 主表；向 tutor 确认 V0 是否算 baseline、CAJ 修正版能否使用、外部 baseline 单种子是否足够、是否需要在作者设置下复现 | 全组 | 下周 tutorial |
+| 2 | 合并 `feat/local-supervision`；M2、M3 首轮（seed17）训练并评价 | D、C/D、E | 待定 |
+| 3 | 有限探索：S 窗口 1/6 epochs、L beta 0.25（最多 3 次训练）；Q 对照；同时完成 EDA | C、D、A | 待定 |
+| 4 | 冻结配置：确定默认值和训练 epoch 数，写入当周计划 | 全组 | 待定 |
+| 5 | M0–M3 各补到 3 个种子；在验证集上选定候选，必须在看测试集前确定 | B、C、D、E | 待定 |
+| 6 | 最终阶段：合并 395 个身份重新训练 M0 与候选各 3 个种子；官方测试集只评价一次；鲁棒性与错误分析 | B、候选负责人、E | 待定 |
+| 7 | 完整 Notebook、正文不超过 4 页的报告、全员展示与彩排 | 全组 | 内部目标 11/15 |
+
+另需在最终提交前锁定作者代码版本、许可证与训练依赖（见 [ATTRIBUTION.md](ATTRIBUTION.md)）。
 
 内部目标为 2026-11-15 形成可提交版本，2026-11-18 是内部暂定截止日；正式日期以课程公告为准。
 
