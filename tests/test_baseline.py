@@ -211,6 +211,67 @@ def test_training_entrypoint_crosses_stage_and_resumes(data, tmp_path, monkeypat
     assert json.loads((tmp_path / "artifacts/results/resumed/summary.json").read_text())["status"] == "completed"
 
 
+@pytest.mark.parametrize("experiment", ["M2", "M3"])
+def test_local_entrypoint_trains_resumes_and_exports(data, tmp_path, monkeypatch, experiment):
+    from types import SimpleNamespace
+    import src.train as training
+    root, rows = data
+    cfg = load_config(experiment)
+    cfg["model"].update(TINY)
+    cfg["training"].update(epochs=2, stage1_epochs=1, amp=False,
+                            identities_per_batch=2, images_per_identity_per_modality=2)
+    cfg["data"]["train_identities"] = 4
+    monkeypatch.setattr(training, "PROJECT", tmp_path)
+    monkeypatch.setattr(training, "load_config", lambda _: copy.deepcopy(cfg))
+    monkeypatch.setattr(training, "get_train_loader", lambda cfg, **kwargs: build_train_loader(rows, root,
+        identities_per_batch=2, images_per_identity_per_modality=2, image_size=(32, 20),
+        num_workers=0, batches_per_epoch=2, pin_memory=False))
+    monkeypatch.setattr(training, "provenance", lambda *args: {"manifest_sha256": "synthetic", "pretrained_sha256": "synthetic"})
+    initial = tmp_path / "initial.pt"
+    torch.save(PMT(4, TINY).base.state_dict(), initial)
+    args = SimpleNamespace(resume=None, experiment=experiment, run_id="resumed", seed=17, device="cpu",
+        pretrained=str(initial), root=str(root), num_workers=0, max_steps=1, log_every=20, save_every=1)
+    training.run(args)
+    path = tmp_path / "checkpoints/resumed/last.pt"
+    args.resume = str(path)
+    args.max_steps = None
+    training.run(args)
+    resumed = load_checkpoint(path)
+    args.resume, args.run_id = None, "continuous"
+    training.run(args)
+    continuous = load_checkpoint(tmp_path / "checkpoints/continuous/last.pt")
+    assert any(key.startswith("local_head.") for key in resumed["model"])
+    for key, value in continuous["model"].items():
+        torch.testing.assert_close(value, resumed["model"][key], rtol=0, atol=0)
+    records = [json.loads(line) for line in (tmp_path / "artifacts/results/resumed/train.jsonl").read_text().splitlines()]
+    assert [r["stage"] for r in records] == [1, 1, 2, 2]
+    for r in records:
+        base = r["id"] + r["triplet"] + r["weighted_msel"] + r["weighted_dcl"]
+        assert r["local"] > 0 and r["local_weighted"] == pytest.approx(.5 * r["local"])
+        assert r["total"] == pytest.approx(base + r["local_weighted"], rel=1e-5)
+    # Exporter path: strict reload, then the retrieval feature keeps the global dimension.
+    model = training.build_model(resumed["num_classes"], resumed["config"], resumed["seed"])
+    model.load_state_dict(resumed["model"], strict=True)
+    assert model.eval()(torch.zeros(2, 3, 32, 20))["retrieval_feature"].shape == (2, 24)
+
+
+def test_local_flag_must_match_experiment(monkeypatch):
+    from types import SimpleNamespace
+    import src.train as training
+    cfg = load_config("M0")
+    cfg["local"]["enabled"] = True
+    monkeypatch.setattr(training, "load_config", lambda _: cfg)
+    with pytest.raises(ValueError, match="Local supervision"):
+        training.run(SimpleNamespace(resume=None, experiment="M0"))
+
+
+def test_baseline_build_stays_plain_pmt():
+    from src.train import build_model
+    cfg = load_config("M0")
+    cfg["model"].update(TINY)
+    assert type(build_model(4, cfg, 17)) is PMT
+
+
 def test_small_batch_can_fit():
     cfg = dict(TINY, dropout=0., drop_path=0.)
     model = PMT(2, cfg)

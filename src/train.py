@@ -10,6 +10,7 @@ import torch
 from .config import load_config
 from .data import get_train_loader, check_pmt_layout
 from .model import PMT
+from .local_head import PMTWithLocal, add_local_loss
 from .losses import PMTLoss
 from .schedules import from_config
 from .training import (seed_all, make_optimizer, EpochSchedule, isolated_batches,
@@ -31,6 +32,14 @@ def choose_device(value):
     return torch.device(value)
 
 
+def build_model(num_classes, cfg, seed, pretrained=None):
+    """Baseline runs keep the plain PMT; the local head is opt-in. Create before the optimizer."""
+    model = PMT(num_classes, cfg["model"], pretrained=pretrained)
+    if cfg["local"]["enabled"]:
+        model = PMTWithLocal(model, regions=cfg["local"]["regions"], enabled=True, seed=seed)
+    return model
+
+
 def provenance(cfg, device, dataset, pretrained):
     def git(*args):
         result = subprocess.run(["git", *args], cwd=PROJECT, text=True, capture_output=True)
@@ -48,8 +57,10 @@ def provenance(cfg, device, dataset, pretrained):
 def run(args):
     checkpoint = load_checkpoint(args.resume) if args.resume else None
     cfg = checkpoint["config"] if checkpoint else load_config(args.experiment)
-    if cfg["experiment"] not in ("M0", "V0", "M1", "F") or cfg["local"]["enabled"]:
-        raise ValueError("This entry point supports M0/V0/M1/F without local supervision")
+    if cfg["experiment"] not in ("M0", "V0", "M1", "F", "M2", "M3"):
+        raise ValueError("This entry point supports M0/V0/M1/F/M2/M3")
+    if cfg["local"]["enabled"] != (cfg["experiment"] in ("M2", "M3")):
+        raise ValueError("Local supervision must be enabled exactly for M2/M3")
     if checkpoint and checkpoint["run_id"] != args.run_id:
         raise ValueError("Resume requires the original --run-id")
     if not checkpoint and getattr(args, "activation_checkpointing", False):
@@ -82,7 +93,7 @@ def run(args):
         raise FileExistsError("run-id already exists; choose a new ID or --resume")
     run_dir.mkdir(parents=True, exist_ok=True)
     ckpt_dir.mkdir(parents=True, exist_ok=True)
-    model = PMT(len(label_map), cfg["model"], pretrained=None if checkpoint else pretrained).to(device)
+    model = build_model(len(label_map), cfg, seed, pretrained=None if checkpoint else pretrained).to(device)
     optimizer = make_optimizer(model, cfg["training"])
     scheduler = EpochSchedule(optimizer, cfg["training"])
     scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
@@ -138,6 +149,8 @@ def run(args):
                     output = model(images)
                 # Explicit FP32 losses, outside autocast.
                 terms = criterion(output, labels, stage)
+                if cfg["local"]["enabled"]:
+                    terms = add_local_loss(terms, output, labels, cfg["local"]["weight"])
                 if not torch.isfinite(terms["total"]):
                     raise FloatingPointError(f"Nonfinite loss at epoch {epoch}, batch {batch_index}")
                 updated, scale_before, scale_after = scaled_optimizer_step(terms["total"], model, optimizer, scaler)
@@ -177,7 +190,7 @@ def run(args):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--experiment", choices=("M0", "V0", "M1", "F"), default="M0")
+    parser.add_argument("--experiment", choices=("M0", "V0", "M1", "F", "M2", "M3"), default="M0")
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--root")
     parser.add_argument("--pretrained")

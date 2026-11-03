@@ -6,10 +6,9 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from .data import get_eval_dataset, collate_eval
-from .model import PMT
 from .agw import AGW, BACKBONE as AGW_BACKBONE
 from .training import load_checkpoint, sha256
-from .train import choose_device, PROJECT
+from .train import build_model, choose_device, PROJECT
 
 
 @torch.inference_mode()
@@ -58,8 +57,10 @@ def main():
     checkpoint = load_checkpoint(args.checkpoint)
     cfg = checkpoint["config"]
     device = choose_device(args.device)
-    network = AGW if cfg["model"]["backbone"] == AGW_BACKBONE else PMT
-    model = network(checkpoint["num_classes"], cfg["model"]).to(device)
+    if cfg["model"]["backbone"] == AGW_BACKBONE:
+        model = AGW(checkpoint["num_classes"], cfg["model"]).to(device)
+    else:
+        model = build_model(checkpoint["num_classes"], cfg, checkpoint["seed"]).to(device)
     model.load_state_dict(checkpoint["model"], strict=True)
     dataset = get_eval_dataset(args.split, modality=args.modality, root=args.root, download=False,
                                image_size=tuple(cfg["model"]["image_size"]))
