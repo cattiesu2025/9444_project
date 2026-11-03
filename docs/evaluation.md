@@ -77,7 +77,7 @@ python -m src.robustness \
 
 Checks before running: checkpoint SHA256 must equal the gallery pool's `checkpoint_sha256`, and the manifest SHA256 must equal the one stored in the checkpoint. The clean condition is re-extracted and compared with B's exported queries (`export_consistency`, min cosine > 0.999), which confirms the model is loaded and preprocessed exactly as in the export. Output: `robustness.json` (refuses to overwrite) and `perturbation_examples.png` showing one query under every condition.
 
-Self-tests (`tests/test_robustness.py`, 12 passing): band position and area for every region/ratio, fill value, pixels outside the band unchanged, blur deterministic and size-preserving with stronger blur lowering contrast, fixed condition list, end-to-end run on synthetic data with a tiny model (clean result identical to plain evaluation, gallery file untouched, no overwrite), perturbations change query features, and rejection of a mismatched checkpoint or manifest.
+Self-tests (`tests/test_robustness.py`, 13 passing): band position and area for every region/ratio, fill value, pixels outside the band unchanged, blur deterministic and size-preserving with stronger blur lowering contrast, fixed condition list, end-to-end run on synthetic data with a tiny model (clean result identical to plain evaluation, gallery file untouched, no overwrite), perturbations change query features, rejection of a mismatched checkpoint or manifest, and strict loading of an M2/M3 checkpoint with a local head (the model is built with `src.train.build_model`, the same path as the exporter).
 
 Runtime on an RTX 5070 Ti Laptop GPU: about 2 minutes per condition for the 1,980 validation queries (single loader worker), about 17 minutes for all 9.
 
