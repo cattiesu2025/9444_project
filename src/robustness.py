@@ -103,11 +103,11 @@ def extract(model, dataset, batch_size=128, num_workers=0, device="cpu"):
 
 
 def load_model(checkpoint_path, device):
-    import torch
-    from .model import PMT
+    from .train import build_model
     from .training import load_checkpoint
     checkpoint = load_checkpoint(checkpoint_path)
-    model = PMT(checkpoint["num_classes"], checkpoint["config"]["model"]).to(device)
+    # 与导出脚本同一构建路径：M2/M3 带局部头，strict 加载才能对上参数名
+    model = build_model(checkpoint["num_classes"], checkpoint["config"], checkpoint["seed"]).to(device)
     model.load_state_dict(checkpoint["model"], strict=True)
     return model.eval(), checkpoint
 

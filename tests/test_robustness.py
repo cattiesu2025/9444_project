@@ -9,7 +9,7 @@ from PIL import Image
 from src.data import build_manifest, write_manifest, SYSUImageList, select_rows
 from src.evaluate import build_gallery_trials, evaluate, gallery_rows, load_features, sha256_file
 from src.export_features import export_dataset
-from src.model import PMT
+from src.train import build_model
 from src.robustness import CONDITIONS, FILL, Perturbation, PerturbedImageList, extract, run_robustness
 from synthetic_sysu import make_synthetic_sysu
 
@@ -60,17 +60,17 @@ def test_clean_is_identity_and_conditions_fixed():
                                 "blur_sigma1", "blur_sigma2"]
 
 
-@pytest.fixture
-def setup(tmp_path):
+def build_setup(tmp_path, local=False):
     torch.manual_seed(17)
     root = make_synthetic_sysu(tmp_path / "data", train=range(1, 5), val=range(5, 9),
                                test=range(9, 11), images_per_camera=2, inject_anomalies=False)
     rows, _ = build_manifest(root, workers=1)
     manifest = tmp_path / "manifest.csv"
     write_manifest(rows, manifest)
-    model = PMT(4, TINY).eval()
+    config = {"model": TINY, "local": {"enabled": local, "regions": 2, "weight": .5}}
+    model = build_model(4, config, 17).eval()
     checkpoint = tmp_path / "last.pt"
-    torch.save({"model": model.state_dict(), "config": {"model": TINY}, "num_classes": 4, "run_id": "synthetic",
+    torch.save({"model": model.state_dict(), "config": config, "num_classes": 4, "run_id": "synthetic",
                 "seed": 17, "manifest_sha256": sha256_file(manifest)}, checkpoint)
     meta = {"checkpoint_sha256": sha256_file(checkpoint), "split": "val", "run_id": "synthetic"}
     for name, modality in (("query", "ir"), ("pool", "rgb")):
@@ -79,6 +79,11 @@ def setup(tmp_path):
     gallery = tmp_path / "gallery.json"
     gallery.write_text(json.dumps(build_gallery_trials(load_features(tmp_path / "pool.npz"), [0, 1, 2], split="val")))
     return dict(root=root, rows=rows, manifest=manifest, model=model, checkpoint=checkpoint, gallery=gallery, tmp=tmp_path)
+
+
+@pytest.fixture
+def setup(tmp_path):
+    return build_setup(tmp_path)
 
 
 def run(s, out="robust", **kwargs):
@@ -102,6 +107,15 @@ def test_end_to_end_clean_matches_plain_evaluation(setup):
     assert (s["tmp"] / "robust" / "perturbation_examples.png").exists()
     with pytest.raises(FileExistsError):
         run(s)
+
+
+def test_local_head_checkpoint_loads_strictly(tmp_path):
+    # M2/M3 权重带 local_head 参数；按普通 PMT 构建会在 strict 加载时报错
+    s = build_setup(tmp_path, local=True)
+    assert any(key.startswith("local_head.") for key in torch.load(s["checkpoint"], weights_only=False)["model"])
+    report = run(s, conditions={k: CONDITIONS[k] for k in ("clean", "occlusion_bottom_20")})
+    assert report["conditions"]["clean"]["export_consistency"]["status"] == "PASS"
+    assert list(report["conditions"]) == ["clean", "occlusion_bottom_20"]
 
 
 def test_perturbation_changes_query_features_only(setup):
