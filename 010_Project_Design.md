@@ -134,7 +134,7 @@ EDA（探索性数据分析）的每张图写清观察、影响及处理决策�
 
 PMT 已有内容：灰度辅助模态、两阶段训练、PHT、MSEL、DCL、CNN/Transformer 对比。上述组件归作者所有，不称为本组提出。
 
-本组工作：数据与采样审计；作者 PyTorch 实现的核验与复现；S/L 扩展的实现和受控消融；暴露量控制；采样及鲁棒性分析；独立评价与可复现交付。水平区域局部特征和训练调度都有既有研究基础，实施前补查相关文献并引用，不宣称发表级新颖性。
+本组工作：数据与采样审计；作者 PyTorch 实现的核验与复现；S/L 扩展的实现和受控消融；暴露量控制；采样及鲁棒性分析；独立评价与可复现交付。水平区域局部特征和训练调度都有既有研究基础，查新进展见 4.2，不宣称发表级新颖性。
 
 建立 `ATTRIBUTION.md`，逐模块记录论文、仓库 URL、commit、许可证状态、原始代码位置、本组修改及负责人。主要入口为 [PMT 作者仓库](https://github.com/hulu88/PMT)；原 AGW 仓库仅作为评价交叉核验参考。
 
@@ -143,6 +143,47 @@ PMT 已有内容：灰度辅助模态、两阶段训练、PHT、MSEL、DCL、CNN
 论文描述使用 MindSpore，公开仓库为 PyTorch。锁定作者仓库 commit、预训练文件 checksum、Python/PyTorch/CUDA/cuDNN/依赖和设备型号。建立“论文设置—作者代码设置—本组实际设置—差异原因”对照表，不能默认两者完全一致。
 
 不同硬件或框架可以进行方法/结论复现，不承诺逐位相同。batch、主干、训练长度改变属于实验设置变化，不能笼统归因于环境。作者权重仅用于校验评价流程；checkpoint 要求的训练需由本组实际执行。作者权重的训练身份若包含内部验证身份，其验证结果不能参与本组调参。
+
+### 4.2 S/L 查新进展（2026-11-04）
+
+**范围：** 两轮 Google Scholar 搜索，均由浏览器代读。第一轮在 308 篇 PMT 施引文献内搜 6 组关键词；第二轮全库搜 8 组关键词，不限于引用 PMT。每组只看前 2 页，共读约 30 篇。这不是系统综述，结论只能写“本次未找到”。
+
+**证据等级：** 已对照原文核对：R1 的基线表述、R13 的测试特征、R14 的重叠区域与推理方式、R16 的条带和测试拼接、R19 的概率调度式、R10 的训练流程与消融。其余细节来自代读，引用前逐篇核对原文。
+
+| 问题 | 当前结论 | 依据 |
+| ---- | -------- | ---- |
+| 是否有基于 PMT 的修改 | 有 | R1 明确以复现的 PMT 为基线；R2 沿用其两阶段流程和 PHT/MSEL/DCL，但未明说以 PMT 为基线。R3、R9 只借用 MSEL/DCL |
+| S 是否有人做过 | **平滑过渡的思路已有人做过（R10）**；未找到相同的灰度概率线性调度 | R10 在 PMT 等主干上比较了直接切换与渐进过渡，机制与 S 不同，见下表 |
+| L 是否有人做过 | 未找到完全相同的方案，但思路已很成熟 | 水平条带加身份头最早可追溯到本次读到的 R15，相近工作见下表 |
+
+| S 相近文献 | 调度或变化的对象 | 与 S 的差异 |
+| ---------- | ---------------- | ------------ |
+| **R10：PBSVT（最接近）** | 按阶段改变输入：IR→IR-灰度融合→灰度→灰度-RGB 融合→RGB | 5 个固定阶段（80 epochs），论文未描述阶段内的调度；过渡靠 CutMix 式空间融合，不是整图灰度概率；从 IR-IR 开始，且主方法用 split ViT；未设匹配暴露量的对照 |
+| R6：PDT | 灰度与 RGB 通道的混合系数 | 系数随机，第 6 个 epoch 硬切换 |
+| R21：BIMM-Net | 灰度插值强度 | 系数随机采样，不随 epoch 变化；无监督设定 |
+| R19：BMDG | 特征层原型来自哪一模态的概率 | 随 t/T 变化，但作用在特征层，不是输入灰度 |
+| R20：Du et al. | 辅助样本损失的权重 | 按 epoch 余弦递减，不改变输入；视频 VI-ReID |
+| R11：FAC-Net | 红外低频幅度谱的混合系数 | 按 epoch 线性变化，不涉及灰度调度 |
+| R7、R8、R9 | 各阶段的输入 | 多阶段硬切换 |
+
+| L 相近文献 | 相近之处 | 与 L 的差异 |
+| ---------- | -------- | ------------ |
+| R12：LAReViT | VI-ReID；ViT 局部分支；测试只用全局 | 3 个区域；局部分支是否有独立身份头未确认 |
+| R13：PPLR | 水平条带接分类器；测试只用全局 | CNN；无监督伪标签；单模态 |
+| R14：PAT | ViT 局部 token；推理不融合局部特征 | 3 个重叠区域；局部不用身份标签；单模态域泛化 |
+| R5：Other Tokens Matter | PCB\* 对重排后的 patch token 分区并平均池化 | 单模态；测试时拼接局部特征 |
+| R3：MLMT | VI-ReID；局部区域接 BN、分类器和局部 ID 损失 | 3 个重叠区域，用局部 token，另加 HCT 和正交损失；全文未写明测试特征 |
+| R15、R16、R17、R18 | 水平条带，每条带有身份头 | CNN；R15、R16、R17 测试时拼接；R18 测试特征未确认 |
+| R4：DBFormer | 切成上下两半 | 独立 Transformer block；推理时使用这两部分特征 |
+| R2：MGVT | 切成上下两半 | 跨模态交叉替换后与全局 class token 相加；无独立局部头 |
+
+**对实验设计的影响：** 本次不改 M0–M3、F 与 `q=2`。L 按已有思路的受控应用来写并引用上述工作；S 必须引用 R10，写成“用不同机制并加入暴露量对照，检验平滑过渡的收益”，不写首次提出；M3 只作为消融。R3、R12 的区域数消融都是 3 最好，R16 是 6 最好，但结构都与 L 不同，不能直接套用。因此 M2 若无收益，只能说明 `q=2` 这一配置无收益，不能推广到局部监督整体。是否探索其他 `q` 由 D 与全组决定。
+
+**R10 的数字不能直接当作 S 的预期收益：** 其表 3 中 PMT 从 67.53/64.98（无 BT/PT）升到 74.94/70.15（Rank-1/mAP），但该变化同时包含新增的 IR 阶段和空间融合，且无暴露量对照。无 BT/PT 一行与 PMT 原文数字相同，PMT 本身也有灰度阶段。其文字把 BT 定义为 IR→灰度→RGB，但表 3 的 BT 行（SVT 74.55/71.16）与表 5 的 2 阶段行相同，而不是 3 阶段行（75.02/70.97）。本组 seed17 内部验证结果为 M0 34.4、M1 34.1、F 34.4（mAP），协议与其不可直接比较。
+
+**未完成：**
+
+- R12 的局部身份头未确认，且全文未由第二人核对。
 
 ## 5. 模型与训练设计
 
@@ -391,6 +432,27 @@ Notebook 包含任务/分工、环境、数据/EDA、文献/归属、PMT 与扩�
 - **P3：** Fu et al. (2021), CM-NAS: Cross-Modality Neural Architecture Search for Visible-Infrared Person Re-Identification, ICCV。[论文](https://arxiv.org/abs/2101.08467)。
 - **P4：** Ye et al. (2021), Channel Augmented Joint Learning for Visible-Infrared Recognition, ICCV。[论文](https://openaccess.thecvf.com/content/ICCV2021/papers/Ye_Channel_Augmented_Joint_Learning_for_Visible-Infrared_Recognition_ICCV_2021_paper.pdf)。
 - **P5：** Lu et al. (2023), Learning Progressive Modality-shared Transformers for Effective Visible-Infrared Person Re-identification, AAAI。[论文](https://arxiv.org/abs/2212.00226)。
+- **R1：** Xu & Niu (2026), BIT: Matching-based Bi-directional Interaction Transformation Network for Visible-Infrared Person Re-Identification, arXiv。[论文](https://arxiv.org/abs/2603.14243)。
+- **R2：** MGVT: Multi-granular Vision Transformer for Visible-Infrared Person Re-identification (2026), SIViP。[DOI](https://doi.org/10.1007/s11760-026-05114-x)。
+- **R3：** Multiple Local-Guided Modality-Shared Feature Learning Transformer for Visible-Infrared Person Re-Identification (2026), IEEE IoT-J。[DOI](https://doi.org/10.1109/jiot.2026.3673575)。
+- **R4：** DBFormer: Dual Branch Transformer for Visible-Infrared Person Re-identification, PRICAI。[DOI](https://doi.org/10.1007/978-981-95-7084-3_3)。
+- **R5：** Other Tokens Matter: Exploring Global and Local Features of Vision Transformers for Object Re-Identification (2024), CVIU。[DOI](https://doi.org/10.1016/j.cviu.2024.104030)。
+- **R6：** Zeng et al. (2025), Progressive Dual-Stream Transformer with Distribution Consistency for Visible-Infrared Person Re-Identification, J. Electronic Imaging。[DOI](https://doi.org/10.1117/1.JEI.34.5.053024)。
+- **R7：** Two-Stage Discrepancy Reduction for Visible-Infrared Pedestrian Re-Identification (2025), CCC。[DOI](https://doi.org/10.23919/ccc64809.2025.11179643)。
+- **R8：** Multi-Stage Auxiliary Learning for Visible-Infrared Person Re-Identification (2024), IEEE TCSVT。[DOI](https://doi.org/10.1109/tcsvt.2024.3425536)。
+- **R9：** A CNN-Transformer Hybrid Model and a Multi-Modal Multi-Stage Training Strategy for Visible-Infrared Person Re-Identification (2025), IJMIR。[DOI](https://doi.org/10.1007/s13735-025-00367-7)。
+- **R10：** Jiao, Xu & Zhang (2026), Progressively Biased Split Vision Transformer Learning for Visible-Infrared Person Re-Identification, IJPRAI。[DOI](https://doi.org/10.1142/S0218001426550165)。
+- **R11：** FAC-Net: Frequency-Aware Cross-Modal Compensation Network (2026), IEEE TCSVT Early Access。[DOI](https://doi.org/10.1109/TCSVT.2026.3730239)。
+- **R12：** Local-Aware Residual Attention Vision Transformer for Visible-Infrared Person Re-Identification (2025), ACM TOMM。[DOI](https://doi.org/10.1145/3723358)。
+- **R13：** Cho et al. (2022), Part-based Pseudo Label Refinement for Unsupervised Person Re-identification, CVPR。[论文](https://arxiv.org/abs/2203.14675)。
+- **R14：** Ni et al. (2023), Part-Aware Transformer for Generalizable Person Re-identification, ICCV。[论文](https://arxiv.org/abs/2308.03322)。
+- **R15：** Sun et al. (2018), Beyond Part Models: Person Retrieval with Refined Part Pooling, ECCV。[论文](https://arxiv.org/abs/1711.09349)。
+- **R16：** Liu, Tan & Zhou (2020), Parameter Sharing Exploration and Hetero-Center Triplet Loss for Visible-Thermal Person Re-Identification。[论文](https://arxiv.org/abs/2008.06223)。
+- **R17：** Zhao et al. (2023), Context-aware and Part Alignment for Visible-Infrared Person Re-Identification, Image and Vision Computing，PII S0262885623001658。
+- **R18：** Zheng et al. (2023), Visible-Infrared Person Re-Identification via Specific and Shared Representations Learning, Visual Intelligence。[DOI](https://doi.org/10.1007/s44267-023-00032-9)。
+- **R19：** Alehdaghi et al. (2025), Bidirectional Multi-Step Domain Generalization for Visible-Infrared Person Re-Identification。[论文](https://arxiv.org/abs/2403.10782)。
+- **R20：** Du et al., Video-Based Visible-Infrared Person Re-Identification With Auxiliary Samples, IEEE TIFS 19，文档号 10335724。
+- **R21：** Peng et al. (2026), BIMM-Net: Bi-Level Inter-Modality Modulation for Unsupervised Visible-Infrared Person Re-Identification, IEEE TIFS 21，文档号 11422041。
 
 ## 12. 五人分工、依赖与时间线
 

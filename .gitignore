@@ -24,3 +24,4 @@ artifacts/results/*
 *.zip
 wandb/
 runs/
+papers/
