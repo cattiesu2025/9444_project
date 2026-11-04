@@ -101,6 +101,22 @@ Observations: bottom occlusion hurts most (20%: about −8 mAP points), then top
 
 **Local supervision (RQ2, M2/M3 seed17, 2026-11-04).** Paired over the same 10 galleries, M2's occlusion drop is smaller than M0's under every occlusion condition: top 20% by 0.7 mAP points (−4.9 vs −5.6; smaller on 10/10 galleries), bottom 10% by 0.4 (10/10), bottom 20% by 0.4 (9/10), top 10% by 0.3 (9/10), middle 10% by 0.4 (9/10), middle 20% by 0.2 (5/10). Under blur the drops are the same (±0.05), which fits L targeting missing body regions rather than image quality. However, M2 starts 0.6 mAP lower on clean queries (lower than M0 on 10/10 galleries), so under occlusion its absolute mAP only matches M0 (top 20%: +0.1; bottom 20%: −0.2) and never clearly exceeds it. M3 (S + L) shows the smaller top-occlusion drop (−0.75) but not the middle/bottom benefit, and is about 1 mAP point below M0 in absolute terms under most conditions. Conclusion for one seed: L trades a little clean accuracy for slightly more stable features under occlusion; the effect (≤ 0.7 points) is below the gallery SD and needs repeat seeds. Raw results: `artifacts/results/{M0,M1,F,M2,M3}_seed17/robustness/robustness.json` (local, not in Git); clean re-extraction matched the exports (min cosine 0.9998 M2, 0.9993 M3).
 
+**Exploratory: local features at test time (`scripts/local_concat_eval.py`, 2026-11-04).** Not part of the main protocol: it changes the retrieval feature from 768 to 2,304 dimensions. Three variants were fixed before running: `global` (as exported); `global+parts` (global + two height-band means of the patch tokens, each L2-normalised, no BN; available for any PMT); `global+local` (M2 only: band features passed through the trained local-head BN necks). The three parts are equally weighted (concatenate, divide by √3); nothing was tuned. The gallery is re-extracted with the same checkpoint (global part matches the export, min cosine ≥ 0.9995).
+
+| Condition | M0 global | M0 global+parts | M2 global | M2 global+parts | M2 global+local |
+| --- | --- | --- | --- | --- | --- |
+| clean | 34.4 | 33.6 | 33.8 | 33.7 | 33.9 |
+| occlusion top 20% | 28.8 | 28.8 | 28.9 | 29.4 | 29.1 |
+| occlusion middle 20% | 32.4 | 31.5 | 32.0 | 31.5 | 32.4 |
+| occlusion bottom 20% | 26.1 | 25.2 | 25.9 | 25.4 | 26.2 |
+| blur σ=2 | 33.1 | 32.6 | 32.5 | 32.6 | 32.7 |
+
+(mAP %, mean of the 10 fixed galleries; all 9 conditions in `artifacts/results/{M0,M2}_seed17/local_concat.json`.)
+
+- Untrained band features hurt M0 under every condition except top 20% occlusion (clean −0.75 mAP, lower on 10/10 galleries), so simply adding local information at test time does not help.
+- M2's trained local features add a small, consistent gain over M2 global under every condition (+0.1 to +0.4 mAP; middle 20% and bottom 20% occlusion better on 10/10 galleries), i.e. the local supervision does make the band features useful for retrieval.
+- The gain is too small to close M2's clean gap: M2 global+local is still 0.5 mAP below M0 global on clean queries (lower on 9/10 galleries) and only matches M0 under occlusion (top 20%: +0.3; bottom 20%: +0.0). Single seed; not a reason to change the main protocol.
+
 Artificial occlusion and blur are controlled stress tests, not the real occlusion distribution; they must not be used to tune methods. Natural occlusion examples are reported separately.
 
 ## Camera coverage of the internal validation split (important limitation)
