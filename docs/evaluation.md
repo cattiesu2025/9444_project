@@ -81,23 +81,25 @@ Self-tests (`tests/test_robustness.py`, 13 passing): band position and area for 
 
 Runtime on an RTX 5070 Ti Laptop GPU: about 2 minutes per condition for the 1,980 validation queries (single loader worker), about 17 minutes for all 9.
 
-**Results (2026-10-30, internal val, All-search, seed 17, mean of 10 fixed galleries; mAP / Rank-1 in %, drop in mAP points vs each model's clean row in brackets):**
+**Results (2026-10-30, M2/M3 added 2026-11-04; internal val, All-search, seed 17, mean of 10 fixed galleries; mAP / Rank-1 in %, drop in mAP points vs each model's clean row in brackets):**
 
-| Condition | M0 | M1 | F |
-| --- | --- | --- | --- |
-| clean | 34.4 / 32.0 | 34.1 / 31.4 | 34.4 / 31.7 |
-| occlusion top 10% | 32.1 / 29.2 (−2.3) | 31.9 / 28.9 (−2.2) | 32.0 / 29.0 (−2.4) |
-| occlusion top 20% | 28.8 / 25.2 (−5.6) | 28.4 / 24.8 (−5.7) | 28.7 / 25.0 (−5.7) |
-| occlusion middle 10% | 33.5 / 30.6 (−0.9) | 33.2 / 29.8 (−1.0) | 33.5 / 30.2 (−0.9) |
-| occlusion middle 20% | 32.5 / 29.6 (−1.9) | 32.1 / 28.6 (−2.0) | 32.5 / 29.0 (−1.9) |
-| occlusion bottom 10% | 31.0 / 28.4 (−3.4) | 30.6 / 27.6 (−3.5) | 30.9 / 27.9 (−3.5) |
-| occlusion bottom 20% | 26.2 / 22.1 (−8.2) | 25.8 / 21.5 (−8.3) | 26.1 / 21.8 (−8.3) |
-| blur σ=1 | 34.1 / 31.7 (−0.3) | 33.8 / 30.8 (−0.4) | 34.0 / 30.9 (−0.4) |
-| blur σ=2 | 33.1 / 30.4 (−1.2) | 32.8 / 29.4 (−1.3) | 32.9 / 29.5 (−1.5) |
+| Condition | M0 | M1 | F | M2 | M3 |
+| --- | --- | --- | --- | --- | --- |
+| clean | 34.4 / 32.0 | 34.1 / 31.4 | 34.4 / 31.7 | 33.8 / 31.5 | 33.4 / 30.6 |
+| occlusion top 10% | 32.1 / 29.2 (−2.3) | 31.9 / 28.9 (−2.2) | 32.0 / 29.0 (−2.4) | 31.8 / 29.2 (−2.0) | 31.4 / 28.5 (−2.0) |
+| occlusion top 20% | 28.8 / 25.2 (−5.6) | 28.4 / 24.8 (−5.7) | 28.7 / 25.0 (−5.7) | 28.9 / 25.7 (−4.9) | 28.5 / 25.4 (−4.8) |
+| occlusion middle 10% | 33.5 / 30.6 (−0.9) | 33.2 / 29.8 (−1.0) | 33.5 / 30.2 (−0.9) | 33.3 / 30.6 (−0.5) | 32.4 / 29.3 (−1.0) |
+| occlusion middle 20% | 32.5 / 29.6 (−1.9) | 32.1 / 28.6 (−2.0) | 32.5 / 29.0 (−1.9) | 32.0 / 28.9 (−1.8) | 31.3 / 28.1 (−2.0) |
+| occlusion bottom 10% | 31.0 / 28.4 (−3.4) | 30.6 / 27.6 (−3.5) | 30.9 / 27.9 (−3.5) | 30.8 / 28.4 (−3.0) | 30.1 / 26.9 (−3.3) |
+| occlusion bottom 20% | 26.2 / 22.1 (−8.2) | 25.8 / 21.5 (−8.3) | 26.1 / 21.8 (−8.3) | 25.9 / 22.0 (−7.8) | 25.4 / 21.4 (−7.9) |
+| blur σ=1 | 34.1 / 31.7 (−0.3) | 33.8 / 30.8 (−0.4) | 34.0 / 30.9 (−0.4) | 33.5 / 30.9 (−0.2) | 33.1 / 30.2 (−0.3) |
+| blur σ=2 | 33.1 / 30.4 (−1.2) | 32.8 / 29.4 (−1.3) | 32.9 / 29.5 (−1.5) | 32.5 / 29.6 (−1.3) | 32.1 / 29.1 (−1.2) |
 
-Checkpoint SHA256 of all three `last.pt` files matched the exported features; clean re-extraction matched B's export (min cosine 0.9996 / 0.9994 / 0.9998). The clean row comes from the re-extracted features, so it can differ from the first-results table by up to 0.1 point (GPU numerical noise).
+Checkpoint SHA256 of all five `last.pt` files matched the exported features; clean re-extraction matched the exports (min cosine M0 0.9996, M1 0.9994, F 0.9998, M2 0.9998, M3 0.9993). The clean row comes from the re-extracted features, so it can differ from the first-results table by up to 0.1 point (GPU numerical noise).
 
-Observations: bottom occlusion hurts most (20%: about −8 mAP points), then top (about −5.6); middle occlusion and blur cost at most about 2 points. The three models degrade almost identically (differences ≤ 0.3 points, single seed), so S (M1) gives no robustness benefit over M0 or F under these perturbations. The M0 rows are the baseline for testing whether local supervision (M2/M3, D) reduces the occlusion drop (RQ2). Raw results: `artifacts/results/{M0,M1,F}_seed17/robustness/robustness.json` (local, not in Git).
+Observations: bottom occlusion hurts most (20%: about −8 mAP points), then top (about −5.6); middle occlusion and blur cost at most about 2 points. M0, M1 and F degrade almost identically (differences ≤ 0.3 points, single seed), so S (M1) gives no robustness benefit over M0 or F under these perturbations.
+
+**Local supervision (RQ2, M2/M3 seed17, 2026-11-04).** Paired over the same 10 galleries, M2's occlusion drop is smaller than M0's under every occlusion condition: top 20% by 0.7 mAP points (−4.9 vs −5.6; smaller on 10/10 galleries), bottom 10% by 0.4 (10/10), bottom 20% by 0.4 (9/10), top 10% by 0.3 (9/10), middle 10% by 0.4 (9/10), middle 20% by 0.2 (5/10). Under blur the drops are the same (±0.05), which fits L targeting missing body regions rather than image quality. However, M2 starts 0.6 mAP lower on clean queries (lower than M0 on 10/10 galleries), so under occlusion its absolute mAP only matches M0 (top 20%: +0.1; bottom 20%: −0.2) and never clearly exceeds it. M3 (S + L) shows the smaller top-occlusion drop (−0.75) but not the middle/bottom benefit, and is about 1 mAP point below M0 in absolute terms under most conditions. Conclusion for one seed: L trades a little clean accuracy for slightly more stable features under occlusion; the effect (≤ 0.7 points) is below the gallery SD and needs repeat seeds. Raw results: `artifacts/results/{M0,M1,F,M2,M3}_seed17/robustness/robustness.json` (local, not in Git); clean re-extraction matched the exports (min cosine 0.9998 M2, 0.9993 M3).
 
 Artificial occlusion and blur are controlled stress tests, not the real occlusion distribution; they must not be used to tune methods. Natural occlusion examples are reported separately.
 
@@ -116,8 +118,10 @@ In the internal validation split (99 identities), IR queries come only from cam3
 | M0 | dev_M0_seed17_katana_20261025_retry1 | 0.3438 | 0.2424 | 0.3207 | 0.6027 | 0.7264 | 0.8388 |
 | M1 | dev_M1_seed17_katana_20261027_l40s | 0.3409 | 0.2401 | 0.3135 | 0.6056 | 0.7330 | 0.8401 |
 | F | dev_F_seed17_katana_20261027_retry1 | 0.3439 | 0.2419 | 0.3167 | 0.6121 | 0.7396 | 0.8453 |
+| M2 | dev_M2_seed17_katana_20261103 | 0.3378 | 0.2371 | 0.3152 | 0.5919 | 0.7171 | 0.8269 |
+| M3 | dev_M3_seed17_katana_20261103 | 0.3335 | 0.2372 | 0.3063 | 0.5803 | 0.7060 | 0.8243 |
 
-All three share the same gallery file (fingerprint `d799087d813f…`); all 1,980 queries are valid. Gallery SD: mAP about 0.015–0.017, Rank-1 about 0.019–0.024. Paired per-gallery differences vs M0: M1 mAP −0.003 (−0.010 to +0.005), Rank-1 −0.007; F mAP 0.000 (−0.009 to +0.009), Rank-1 −0.004. The differences are smaller than the gallery variation and come from a single training seed, so they do not show whether S helps or hurts. Raw results are in each run's `eval_all/metrics.json` (local, not in Git).
+All three share the same gallery file (fingerprint `d799087d813f…`); all 1,980 queries are valid. Gallery SD: mAP about 0.015–0.017, Rank-1 about 0.019–0.024. Paired per-gallery differences vs M0: M1 mAP −0.003 (−0.010 to +0.005), Rank-1 −0.007; F mAP 0.000 (−0.009 to +0.009), Rank-1 −0.004. The differences are smaller than the gallery variation and come from a single training seed, so they do not show whether S helps or hurts. M2 and M3 (2026-11-04) are below M0 on every gallery: M2 mAP −0.006 (−0.012 to −0.001), Rank-1 −0.006 (10/10 galleries lower); M3 mAP −0.010 (−0.015 to −0.003), Rank-1 −0.014 (9/10). Consistent in sign but below 1 point and from one seed. Raw results are in each run's `eval_all/metrics.json` (local, not in Git).
 
 ## Status
 
