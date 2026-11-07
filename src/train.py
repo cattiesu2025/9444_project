@@ -57,8 +57,8 @@ def provenance(cfg, device, dataset, pretrained):
 def run(args):
     checkpoint = load_checkpoint(args.resume) if args.resume else None
     cfg = checkpoint["config"] if checkpoint else load_config(args.experiment)
-    if cfg["experiment"] not in ("M0", "V0", "M1", "F", "M2", "M3", "L3_B025", "L3_B050", "L2_B025"):
-        raise ValueError("This entry point supports M0/V0/M1/F/M2/M3/L3_B025/L3_B050/L2_B025")
+    if cfg["experiment"] not in ("M0", "V0", "M1", "F", "M2", "M3", "L3_B025", "L3_B050", "L2_B025", "Q"):
+        raise ValueError("This entry point supports M0/V0/M1/F/M2/M3/L3_B025/L3_B050/L2_B025/Q")
     if cfg["local"]["enabled"] != (cfg["experiment"] in ("M2", "M3", "L3_B025", "L3_B050", "L2_B025")):
         raise ValueError("Local supervision must be enabled exactly for M2/M3/L3_B025/L3_B050/L2_B025")
     if checkpoint and checkpoint["run_id"] != args.run_id:
@@ -190,7 +190,7 @@ def run(args):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--experiment", choices=("M0", "V0", "M1", "F", "M2", "M3", "L3_B025", "L3_B050", "L2_B025"), default="M0")
+    parser.add_argument("--experiment", choices=("M0", "V0", "M1", "F", "M2", "M3", "L3_B025", "L3_B050", "L2_B025", "Q"), default="M0")
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--root")
     parser.add_argument("--pretrained")
