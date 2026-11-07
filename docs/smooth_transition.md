@@ -28,12 +28,32 @@ stage-switching rules remain unchanged.
 - Schedule checks covered probability boundaries, equal expected
   exposure and reconstruction from the saved configuration and step.
 
-## Conclusion and Limitations
-The checks support the correctness of the probability schedule and its
-connection to the sampler. The implementation provides a controlled way
-to compare an immediate switch, a gradual transition and a fixed-
-probability transition.
+## Results and limitations
 
-These are implementation checks, not evidence of improved retrieval
-performance. End-to-end training, checkpoint-resume verification and
-Rank-1/mAP comparisons between M0, M1 and F remain to be completed.
+On the internal SYSU-MM01 validation split (All-search, training seed 17,
+averaged over the same 10 fixed galleries), M0 achieved 34.38% mAP and
+32.07% Rank-1. The linear transition (M1) reached 34.09% and 31.35%, a
+drop of 0.29 and 0.72 percentage points, respectively. The fixed-probability
+control (F) reached 34.39% and 31.67%, effectively matching M0 in mAP.
+M1's paired mAP difference versus M0 ranged from about −1.0 to +0.5
+points across galleries. M0, M1 and F also showed similar drops under
+synthetic occlusion and blur. These runs show no clear benefit from
+the tested smooth transition. The 10 galleries are repeated evaluations
+of one training seed, so they do not establish whether the method
+helps or hurts across training runs. See [evaluation.md](evaluation.md).
+
+One possible explanation is that PMT already has a grayscale stage and
+uses cross-modal alignment losses. A short taper changes when RGB training
+images lose colour, but does not introduce a new alignment objective or
+new channel views. The taper may also delay exposure to colour cues at
+the start of stage 2. These explanations are hypotheses; the retrieval
+metrics alone cannot distinguish them.
+
+The team's corrected CAJ baseline (CAJ_fix) achieved approximately
+34.4% mAP and 33.1% Rank-1 on the same internal evaluation. CAJ_fix uses
+channel exchange and channel-adaptive grayscale augmentation in its
+training pipeline; S changes only the grayscale probability during
+PMT's stage-2 transition. CAJ_fix also differs in backbone, losses and
+training settings, so its scores cannot isolate the effect of channel
+augmentation. The original CAJ run collapsed and was excluded from
+the comparison; see the [weekly checkpoint notes](../012_Weekly_Checkpoint_Deliverables.md).
