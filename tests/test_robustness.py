@@ -60,14 +60,14 @@ def test_clean_is_identity_and_conditions_fixed():
                                 "blur_sigma1", "blur_sigma2"]
 
 
-def build_setup(tmp_path, local=False):
+def build_setup(tmp_path, local=False, regions=2):
     torch.manual_seed(17)
     root = make_synthetic_sysu(tmp_path / "data", train=range(1, 5), val=range(5, 9),
                                test=range(9, 11), images_per_camera=2, inject_anomalies=False)
     rows, _ = build_manifest(root, workers=1)
     manifest = tmp_path / "manifest.csv"
     write_manifest(rows, manifest)
-    config = {"model": TINY, "local": {"enabled": local, "regions": 2, "weight": .5}}
+    config = {"model": TINY, "local": {"enabled": local, "regions": regions, "weight": .5}}
     model = build_model(4, config, 17).eval()
     checkpoint = tmp_path / "last.pt"
     torch.save({"model": model.state_dict(), "config": config, "num_classes": 4, "run_id": "synthetic",
