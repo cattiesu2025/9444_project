@@ -1,0 +1,7 @@
+{
+  "experiment": "L3_B050",
+  "owner": "D",
+  "training": {"seeds": [17]},
+  "smooth": {"mode": "off"},
+  "local": {"enabled": true, "regions": 3, "weight": 0.5}
+}
