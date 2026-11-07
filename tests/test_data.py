@@ -375,3 +375,156 @@ def test_get_eval_dataset_one_call(dataset, isolated_paths, monkeypatch):
     monkeypatch.setenv(D.DATA_ROOT_ENV, str(root))
     query = D.get_eval_dataset("val", modality="ir")
     assert len(query) > 0 and {query[i]["camera"] for i in range(len(query))} <= {3, 6}
+
+
+# --- 自然遮挡子集（服务 L / E） ------------------------------------------------
+
+def _write_subset(path, records):
+    import csv
+    with open(path, "w", newline="", encoding="utf-8") as fh:
+        w = csv.DictWriter(fh, fieldnames=D.OCCLUSION_FIELDS)
+        w.writeheader()
+        for r in records:
+            w.writerow({k: r.get(k, "") for k in D.OCCLUSION_FIELDS})
+
+
+def _val_ir(rows, n):
+    return [rows[i] for i in D.select_rows(rows, ["val"], modality="ir")][:n]
+
+
+def _record(row, **kw):
+    base = {"relative_path": row["relative_path"], "identity": row["identity"], "camera": row["camera"],
+            "occluder": "object", "region": "bottom", "half": "lower", "severity": "mild", "note": ""}
+    base.update(kw)
+    return base
+
+
+def test_natural_occlusion_loads_and_filters(dataset, tmp_path):
+    _, rows, _ = dataset
+    a, b, c = _val_ir(rows, 3)
+    path = tmp_path / "occ.csv"
+    _write_subset(path, [_record(a), _record(b, occluder="person", region="top", half="upper"),
+                         _record(c, occluder="frame_edge", region="side", half="both", severity="heavy")])
+    recs = D.load_natural_occlusion(path, rows, "val")
+    assert [r["relative_path"] for r in recs] == [a["relative_path"], b["relative_path"], c["relative_path"]]
+    assert D.natural_occlusion_paths(path, rows, "val", half="upper") == [b["relative_path"]]
+    assert D.natural_occlusion_paths(path, rows, "val", occluder="frame_edge", severity="heavy") == [c["relative_path"]]
+    with pytest.raises(ValueError):
+        D.natural_occlusion_paths(path, rows, "val", identity="1")
+    with pytest.raises(ValueError, match="test 划分"):      # 默认划分是 test，验证集样例会被拒绝
+        D.load_natural_occlusion(path, rows)
+
+
+@pytest.mark.parametrize("bad", [{"occluder": "shadow"}, {"half": "middle"}, {"region": "left"}, {"severity": "x"}])
+def test_natural_occlusion_rejects_unknown_labels(dataset, tmp_path, bad):
+    _, rows, _ = dataset
+    path = tmp_path / "occ.csv"
+    _write_subset(path, [_record(_val_ir(rows, 1)[0], **bad)])
+    with pytest.raises(ValueError):
+        D.load_natural_occlusion(path, rows, "val")
+
+
+def test_natural_occlusion_rejects_non_val_ir_and_duplicates(dataset, tmp_path):
+    _, rows, _ = dataset
+    train_ir = rows[D.select_rows(rows, ["train"], modality="ir")[0]]
+    val_rgb = rows[D.select_rows(rows, ["val"], modality="rgb")[0]]
+    for wrong in (train_ir, val_rgb):
+        path = tmp_path / "wrong.csv"
+        _write_subset(path, [_record(wrong)])
+        with pytest.raises(ValueError, match="val 划分的 IR"):
+            D.load_natural_occlusion(path, rows, "val")
+    a = _val_ir(rows, 1)[0]
+    _write_subset(tmp_path / "dup.csv", [_record(a), _record(a)])
+    with pytest.raises(ValueError, match="重复"):
+        D.load_natural_occlusion(tmp_path / "dup.csv", rows, "val")
+    _write_subset(tmp_path / "id.csv", [_record(a, identity=a["identity"] + 1)])
+    with pytest.raises(ValueError, match="不一致"):
+        D.load_natural_occlusion(tmp_path / "id.csv", rows, "val")
+
+
+def test_subset_by_paths_keeps_order_and_is_strict():
+    import numpy as np
+    arrays = {"features": np.arange(8.).reshape(4, 2), "identities": np.array([1, 2, 3, 4]),
+              "paths": np.array(["a", "b", "c", "d"]), "metadata": {"split": "val"}}
+    part = D.subset_by_paths(arrays, ["d", "b"])
+    assert part["paths"].tolist() == ["b", "d"] and part["identities"].tolist() == [2, 4]
+    assert part["features"].tolist() == [[2., 3.], [6., 7.]] and part["metadata"] == {"split": "val"}
+    with pytest.raises(ValueError):
+        D.subset_by_paths(arrays, ["b", "zzz"])
+    assert D.subset_by_paths(arrays, ["b", "zzz"], strict=False)["paths"].tolist() == ["b"]
+
+
+def test_get_eval_dataset_natural_occlusion_subset(dataset, isolated_paths, monkeypatch, tmp_path):
+    root, rows, _ = dataset
+    monkeypatch.setenv(D.DATA_ROOT_ENV, str(root))
+    picked = _val_ir(D.get_manifest(), 2)
+    path = tmp_path / "occ.csv"
+    _write_subset(path, [_record(r) for r in picked])
+    monkeypatch.setattr(D, "NATURAL_OCCLUSION_FILE", path)
+    ds = D.get_eval_dataset("val", modality="ir", subset="natural_occlusion")
+    assert sorted(ds[i]["path"] for i in range(len(ds))) == sorted(r["relative_path"] for r in picked)
+    with pytest.raises(ValueError):
+        D.get_eval_dataset("val", modality="ir", subset="nope")
+
+
+def test_natural_occlusion_eval_script(dataset, tmp_path):
+    """用合成特征端到端跑评价脚本：分组数量正确、差值正确、与 E 的评价函数结果一致。"""
+    import json
+    import subprocess
+    import numpy as np
+    from src.evaluate import build_gallery_trials, evaluate, gallery_rows, load_features
+    _, rows, _ = dataset
+    rng = np.random.default_rng(0)
+
+    def export(split_rows, modality_code, path, shift, run_id):
+        ids = np.array([r["identity"] for r in split_rows])
+        feats = rng.normal(size=(len(ids), 16)) + np.eye(16)[ids % 16] * shift
+        feats /= np.linalg.norm(feats, axis=1, keepdims=True)
+        np.savez_compressed(path, features=feats.astype(np.float32), identities=ids,
+                            cameras=np.array([r["camera"] for r in split_rows]),
+                            modalities=np.full(len(ids), modality_code), paths=np.array([r["relative_path"] for r in split_rows]),
+                            metadata_json=np.asarray(json.dumps({"split": "val", "run_id": run_id})))
+
+    q_rows = [rows[i] for i in D.select_rows(rows, ["val"], modality="ir")]
+    g_rows = [rows[i] for i in D.select_rows(rows, ["val"], modality="rgb")]
+    for name, shift in (("m0", 2.0), ("m2", 4.0)):
+        export(q_rows, 1, tmp_path / f"q_{name}.npz", shift, name)
+        export(g_rows, 0, tmp_path / f"g_{name}.npz", shift, name)
+    pool = load_features(tmp_path / "g_m0.npz")
+    gallery = build_gallery_trials(pool, [0, 1, 2], "all", "val")
+    (tmp_path / "gallery.json").write_text(json.dumps(gallery))
+    picked = q_rows[:3]
+    _write_subset(tmp_path / "occ.csv", [_record(picked[0]), _record(picked[1], half="upper", region="top"),
+                                         _record(picked[2], occluder="person")])
+    manifest = tmp_path / "manifest.csv"
+    D.write_manifest(rows, manifest)
+    out = tmp_path / "res.json"
+    cmd = [sys.executable, str(ROOT / "scripts" / "natural_occlusion_eval.py"),
+           "--run", "M0", str(tmp_path / "q_m0.npz"), str(tmp_path / "g_m0.npz"),
+           "--run", "M2", str(tmp_path / "q_m2.npz"), str(tmp_path / "g_m2.npz"),
+           "--subset", str(tmp_path / "occ.csv"), "--manifest", str(manifest),
+           "--gallery-file", str(tmp_path / "gallery.json"), "--split", "val", "--output", str(out)]
+    # 标注文件不在 Git 中：默认拒绝，保证标注先于结果固定
+    refused = subprocess.run(cmd, capture_output=True, text=True, cwd=ROOT)
+    assert refused.returncode != 0 and "未提交" in refused.stderr and not out.exists()
+    cmd.append("--allow-uncommitted-subset")
+    subprocess.run(cmd, check=True, capture_output=True, text=True, cwd=ROOT)
+    res = json.loads(out.read_text(encoding="utf-8"))
+    assert res["split"] == "val" and res["subset_committed"] is False
+    g = res["runs"]["M0"]["groups"]
+    assert g["all"]["num_queries"] == len(q_rows)
+    assert g["natural_occlusion"]["num_queries"] == 3
+    assert g["not_occluded"]["num_queries"] == len(q_rows) - 3
+    assert g["half_lower"]["num_queries"] == 2 and g["half_upper"]["num_queries"] == 1
+    assert g["occluder_person"]["num_queries"] == 1 and g["occluder_frame_edge"]["num_queries"] == 0
+    cams = {r["camera"] for r in q_rows}
+    for cam in cams:   # 每个摄像头：遮挡 + 未遮挡 = 全部
+        assert (g[f"cam{cam}_natural_occlusion"]["num_queries"] + g[f"cam{cam}_not_occluded"]["num_queries"]
+                == g[f"cam{cam}_all"]["num_queries"] == sum(r["camera"] == cam for r in q_rows))
+    # 全集结果与直接调用 E 的 evaluate 完全一致
+    direct = evaluate(load_features(tmp_path / "q_m0.npz"), pool, gallery_rows(pool, gallery))["mean_over_gallery"]
+    assert g["all"]["mAP"] == pytest.approx(direct["mAP"])
+    diff = res["difference_vs_M0"]["M2"]["natural_occlusion"]["mAP"]
+    assert diff == pytest.approx(res["runs"]["M2"]["groups"]["natural_occlusion"]["mAP"] - g["natural_occlusion"]["mAP"])
+    with pytest.raises(subprocess.CalledProcessError):   # 拒绝覆盖
+        subprocess.run(cmd, check=True, capture_output=True, text=True, cwd=ROOT)

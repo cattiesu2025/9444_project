@@ -65,6 +65,10 @@ DATASET_POINTER = PROJECT_ROOT / "data" / "dataset_location.json"  # 自动下�
 DATA_ROOT_ENV = "SYSU_MM01_ROOT"                                     # 可用环境变量指定数据目录
 KAGGLE_HANDLE = "coconutjean/sysumm01"                               # 课程提供的 Kaggle 镜像
 KAGGLE_URL = "https://www.kaggle.com/datasets/coconutjean/sysumm01"
+# 自然遮挡子集：IR query 中人工标注的真实遮挡样例（只含路径与标签，不含图像，入 Git）。
+# 验证集 1,980 张逐张检查后无符合标准的样例（见 annotations/README.md），因此子集定义在测试集上。
+NATURAL_OCCLUSION_SPLIT = "test"
+NATURAL_OCCLUSION_FILE = PROJECT_ROOT / "annotations" / "natural_occlusion_test_ir.csv"
 
 RGB_CAMERAS = (1, 2, 4, 5)
 IR_CAMERAS = (3, 6)
@@ -1265,13 +1269,91 @@ def get_train_loader(experiment: str | dict = "M0", final: bool = False,
 
 def get_eval_dataset(split: str = "val", modality: str | None = None, cameras: Sequence[int] | None = None,
                      root: str | os.PathLike | None = None, download: bool = True,
-                     image_size: tuple[int, int] = (256, 128)) -> "SYSUImageList":
+                     image_size: tuple[int, int] = (256, 128), subset: str | None = None) -> "SYSUImageList":
     """B/E 的特征导出入口：某划分（可选模态、摄像头）的逐图数据集，不含训练标签。
 
         query = get_eval_dataset("val", modality="ir")
         gallery_pool = get_eval_dataset("val", modality="rgb")
+        occluded = get_eval_dataset("test", modality="ir", subset="natural_occlusion")  # 自然遮挡子集（仅冻结后报告）
     """
     prep = prepare_data(root, download, verbose=False)
     rows = load_manifest(prep["manifest"])
-    return SYSUImageList(rows, prep["root"], select_rows(rows, [split], modality=modality, cameras=cameras),
-                         image_size=image_size)
+    indices = select_rows(rows, [split], modality=modality, cameras=cameras)
+    if subset == "natural_occlusion":
+        keep = set(natural_occlusion_paths(rows=rows, split=split))
+        indices = [i for i in indices if rows[i]["relative_path"] in keep]
+    elif subset is not None:
+        raise ValueError(f"未知子集 {subset!r}；可用：'natural_occlusion'")
+    return SYSUImageList(rows, prep["root"], indices, image_size=image_size)
+
+
+# ---------------------------------------------------------------------------
+# 自然遮挡子集（服务 L 的局部监督分析与 E 的鲁棒性报告；定义在测试集，只在配置冻结后做描述性报告）
+# ---------------------------------------------------------------------------
+
+OCCLUSION_FIELDS = ("relative_path", "identity", "camera", "occluder", "region", "half", "severity", "note")
+OCCLUDERS = ("object", "person", "frame_edge")   # 被物体 / 其他人 / 画面边缘挡住
+REGIONS = ("top", "middle", "bottom", "side")    # 与 E 的人工遮挡带对应；side = 左右边缘整段截断
+HALVES = ("upper", "lower", "both")              # 对应 L 的 q=2 上下两个局部区域
+SEVERITIES = ("mild", "heavy")                   # 约 10–25% / 超过 25% 的人体被挡
+
+
+def load_natural_occlusion(path: str | os.PathLike | None = None, rows: Sequence[dict] | None = None,
+                           split: str = NATURAL_OCCLUSION_SPLIT) -> list[dict]:
+    """读取并校验自然遮挡子集。传入 manifest 行时，还核对每条都是该划分的 IR query 且身份/摄像头一致。"""
+    path = _project_path(path) if path is not None else NATURAL_OCCLUSION_FILE
+    if not Path(path).exists():
+        raise FileNotFoundError(f"自然遮挡子集不存在：{path}")
+    allowed = {"occluder": OCCLUDERS, "region": REGIONS, "half": HALVES, "severity": SEVERITIES}
+    by_path = {r["relative_path"]: r for r in rows} if rows is not None else None
+    items, seen = [], set()
+    with Path(path).open(newline="", encoding="utf-8") as fh:
+        reader = csv.DictReader(fh)
+        missing = set(OCCLUSION_FIELDS) - set(reader.fieldnames or [])
+        if missing:
+            raise ValueError(f"{path} 缺少字段：{sorted(missing)}")
+        for line, rec in enumerate(reader, start=2):
+            for key, values in allowed.items():
+                if rec[key] not in values:
+                    raise ValueError(f"{path}:{line} {key}={rec[key]!r} 不在 {values} 中")
+            if rec["relative_path"] in seen:
+                raise ValueError(f"{path}:{line} 重复路径 {rec['relative_path']}")
+            seen.add(rec["relative_path"])
+            rec["identity"], rec["camera"] = int(rec["identity"]), int(rec["camera"])
+            if by_path is not None:
+                row = by_path.get(rec["relative_path"])
+                if row is None:
+                    raise ValueError(f"{path}:{line} manifest 中没有 {rec['relative_path']}")
+                if row["split"] != split or row["modality"] != "ir":
+                    raise ValueError(f"{path}:{line} 不是 {split} 划分的 IR query：{rec['relative_path']}")
+                if (row["identity"], row["camera"]) != (rec["identity"], rec["camera"]):
+                    raise ValueError(f"{path}:{line} 身份/摄像头与 manifest 不一致")
+            items.append(rec)
+    return items
+
+
+def natural_occlusion_paths(path: str | os.PathLike | None = None, rows: Sequence[dict] | None = None,
+                            split: str = NATURAL_OCCLUSION_SPLIT, **filters: str) -> list[str]:
+    """子集路径列表；可按字段筛选，例如 natural_occlusion_paths(half="lower", occluder="object")。"""
+    for key in filters:
+        if key not in ("occluder", "region", "half", "severity"):
+            raise ValueError(f"不能按 {key} 筛选")
+    return [r["relative_path"] for r in load_natural_occlusion(path, rows, split)
+            if all(r[k] == v for k, v in filters.items())]
+
+
+def subset_by_paths(arrays: dict, paths: Iterable[str], strict: bool = True) -> dict:
+    """从导出的特征字典（src.evaluate.load_features 的结果）中取出指定路径的行，保持原顺序与 metadata。
+
+    strict=True 时，任一路径不在特征中即报错，避免子集被悄悄缩小。
+    """
+    wanted = set(paths)
+    all_paths = np.asarray(arrays["paths"]).astype(str)
+    mask = np.isin(all_paths, list(wanted))
+    if strict and int(mask.sum()) != len(wanted):
+        missing = sorted(wanted - set(all_paths[mask].tolist()))
+        raise ValueError(f"{len(missing)} 条子集路径不在特征文件中，例如 {missing[:3]}")
+    out = {k: (v[mask] if isinstance(v, np.ndarray) and v.ndim >= 1 and len(v) == len(all_paths) else v)
+           for k, v in arrays.items()}
+    out["paths"] = all_paths[mask]
+    return out
