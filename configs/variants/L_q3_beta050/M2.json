@@ -1,0 +1,12 @@
+{
+  "experiment": "M2",
+  "owner": "D",
+  "smooth": {
+    "mode": "off"
+  },
+  "local": {
+    "enabled": true,
+    "regions": 3,
+    "weight": 0.5
+  }
+}
