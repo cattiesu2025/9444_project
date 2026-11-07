@@ -4,7 +4,7 @@ from copy import deepcopy
 import json
 from pathlib import Path
 
-EXPERIMENTS = ("V0", "M0", "M1", "M2", "M3", "F", "Q", "AGW", "CAJ", "CAJ_fix")
+EXPERIMENTS = ("V0", "M0", "M1", "M2", "M3", "L3_B025", "F", "Q", "AGW", "CAJ", "CAJ_fix")
 
 
 def merge(base: dict, override: dict) -> dict:
