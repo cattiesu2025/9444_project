@@ -141,6 +141,53 @@ In the internal validation split (99 identities), IR queries come only from cam3
 
 All three share the same gallery file (fingerprint `d799087d813f…`); all 1,980 queries are valid. Gallery SD: mAP about 0.015–0.017, Rank-1 about 0.019–0.024. Paired per-gallery differences vs M0: M1 mAP −0.003 (−0.010 to +0.005), Rank-1 −0.007; F mAP 0.000 (−0.009 to +0.009), Rank-1 −0.004. The differences are smaller than the gallery variation and come from a single training seed, so they do not show whether S helps or hurts. M2 and M3 (2026-11-04) are below M0 on every gallery: M2 mAP −0.006 (−0.012 to −0.001), Rank-1 −0.006 (10/10 galleries lower); M3 mAP −0.010 (−0.015 to −0.003), Rank-1 −0.014 (9/10). Consistent in sign but below 1 point and from one seed. Raw results are in each run's `eval_all/metrics.json` (local, not in Git).
 
+## Three training seeds: M0 vs M1 (2026-11-08)
+
+Same protocol and gallery file; all features exported by B on Katana (delivery validation PASS, feature `checkpoint_sha256` equals the checkpoint). As a cross-check, E also exported M0 seed42/2026 locally from the checkpoints: min cosine to B's features 0.9996, mAP within 0.01 points.
+
+| Seed | M0 mAP | M1 mAP | M1 − M0 | M0 Rank-1 | M1 Rank-1 |
+| --- | --- | --- | --- | --- | --- |
+| 17 | 34.38 | 34.09 | −0.29 | 32.07 | 31.35 |
+| 42 | 34.24 | 33.97 | −0.27 | 31.37 | 31.49 |
+| 2026 | 35.10 | 34.99 | −0.11 | 33.18 | 32.74 |
+| Mean ± SD | 34.57 ± 0.46 | 34.35 ± 0.56 | −0.22 | 32.21 ± 0.91 | 31.86 ± 0.76 |
+
+M1 is below M0 in mAP for every training seed, but the mean difference (−0.22 mAP) is about half the seed SD. S does not improve retrieval; it is not shown to hurt either. The training-seed SD of M0 (0.46 mAP) is the yardstick for every single-seed comparison below.
+
+## L exploration: regions q × loss weight β (seed 17, exploratory)
+
+All four runs differ from M0 only in the local head (`local.regions`, `local.weight`); retrieval uses the 768-d global feature. Checkpoint SHA256, `.sha256` file and the features' `checkpoint_sha256` agree for every run; clean re-extraction consistency PASS (min cosine ≥ 0.9995).
+
+Clean mAP (paired difference vs M0 seed17 over the 10 galleries, and galleries where the variant is higher):
+
+| | β = 0.5 | β = 0.25 |
+| --- | --- | --- |
+| q = 2 | M2: 33.78 (−0.60, 0/10) | L2_B025: 34.67 (+0.29, 6/10) |
+| q = 3 | **L3_B050: 34.92 (+0.54, 7/10)** | L3_B025: 34.42 (+0.04, 5/10) |
+
+Rank-1: M2 31.52, L2_B025 32.82, L3_B050 32.18, L3_B025 31.94 (M0 32.07).
+
+Absolute mAP under perturbation (drop vs clean in brackets):
+
+| Condition | M0 | M2 | L2_B025 | L3_B050 | L3_B025 |
+| --- | --- | --- | --- | --- | --- |
+| clean | 34.4 | 33.8 | 34.7 | **34.9** | 34.4 |
+| top 20% | 28.8 (−5.6) | 28.9 (−4.9) | 29.1 (−5.6) | 29.1 (−5.8) | 29.0 (−5.4) |
+| middle 20% | 32.5 (−1.9) | 32.0 (−1.8) | 32.4 (−2.3) | **33.5 (−1.4)** | 32.6 (−1.8) |
+| bottom 20% | 26.2 (−8.2) | 25.9 (−7.8) | 26.4 (−8.3) | 26.6 (−8.3) | 26.1 (−8.4) |
+| blur σ=2 | 33.1 (−1.2) | 32.5 (−1.3) | 33.3 (−1.3) | 33.7 (−1.2) | 33.1 (−1.3) |
+
+Paired difference in drop vs M0 (positive = drops less): M2 top 20% +0.69 (10/10), bottom 20% +0.39 (9/10); L3_B050 middle 20% +0.48 (8/10), top −0.23, bottom −0.09; L2_B025 and L3_B025 within ±0.35 everywhere.
+
+Test-time concatenation (`scripts/local_concat_eval.py`, clean mAP, global → global+local): L3_B050 34.9 → 35.0, L2_B025 34.7 → 34.2, L3_B025 34.4 → 34.0, M2 33.8 → 33.9. Concatenation does not help consistently and stays outside the main protocol.
+
+Reading:
+
+- M2 (q=2, β=0.5) is the only configuration below M0. Reducing β or using three regions removes the clean-accuracy cost; the two changes do not add up (L3_B025 is back at M0's level).
+- L3_B050 is the highest on clean queries and in absolute mAP under every perturbation, but its +0.54 over M0 seed17 is about one M0 seed SD and inside M0's seed range (34.24–35.10).
+- M2's smaller occlusion drop does not carry over to the other variants. Part of it is likely the lower starting point, so RQ2 has no consistent support from artificial occlusion.
+- Basis for the freeze decision (validation only; the test split and natural-occlusion subset were not used): if the team adopts an L configuration for M2/M3 seeds 42/2026, L3_B050 is the candidate supported by these numbers. Any claim of improvement needs the three-seed comparison.
+
 ## Status
 
-The evaluator and its self-tests are complete and match the pinned PMT reference implementation; M0/M1/F seed17 have been re-evaluated on the internal validation split. The robustness tool is implemented, self-tested and has been run on the M0/M1/F seed17 checkpoints; M2/M3 will be run with the same conditions once D's checkpoints exist.
+The evaluator, robustness tool and concatenation script are complete and self-tested. Evaluated on val: V0/AGW/CAJ_fix (team lead), M0 and M1 seeds 17/42/2026, F/M2/M3 seed17, and the three L exploration runs, including robustness and concatenation for every L run. Remaining: three-seed evaluation of the frozen configuration, final test-split evaluation, natural-occlusion subset, error analysis.
