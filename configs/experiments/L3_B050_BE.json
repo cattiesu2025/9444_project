@@ -1,0 +1,8 @@
+{
+  "experiment": "L3_B050_BE",
+  "owner": "E",
+  "training": {"seeds": [17, 42, 2026]},
+  "smooth": {"mode": "off"},
+  "local": {"enabled": true, "regions": 3, "weight": 0.5},
+  "augmentation": {"band_erasing": 0.5}
+}

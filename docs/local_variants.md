@@ -61,3 +61,25 @@ python -m src.evaluate run --query artifacts/results/dev_L2_B025_seed17_20261107
 ## 当前状态
 
 配置与入口注册已实现。合成输入/自动化检查不代表完成真实训练和检索评价；mAP、Rank-1等只能在真实评价完成后填写。详细本地检查见随包交付的验证记录。
+
+## 横条遮挡增强：L3_B050_BE 与 M0_BE（E，2026-11-14）
+
+**动机：** 三种子下 L3_B050 与 M0 基本持平（验证集 mAP 34.67 ± 0.34 vs 34.57 ± 0.46），遮挡下也没有一致优势，只在中间遮挡有约 +0.3 的趋势（见 [evaluation.md](evaluation.md)）。原有训练已带作者的随机擦除（`PMTRandomErasing`，p=0.5，面积 2%–40%，位置随机），所以"再加 random erasing"等于原配置。这里改为与局部区域对齐的横条擦除：某一区域整条被挡住时，模型只能依靠其他区域和全局特征识别。
+
+**做法：** `src/data.py` 的 `BandErasing`。以概率 p 选一条区域（高度等分为 q 条，第 j 条为行 `[floor(j*H/q), floor((j+1)*H/q))`，与局部头的划分方式一致），整行宽度擦除，填充值与作者随机擦除相同。作用于 RGB 与 IR、两个训练阶段，排在原随机擦除之后。p=0 时不消耗随机数，已有实验的增强序列逐像素不变（有测试覆盖）。
+
+| 实验 | 与谁对照 | 唯一差别 |
+| --- | --- | --- |
+| L3_B050_BE | L3_B050（已有三种子） | `augmentation.band_erasing = 0.5` |
+| M0_BE（可选对照） | M0（已有三种子） | 同上；`local.regions = 3` 只决定擦除带位置，局部监督仍关闭 |
+
+**训练（B）：** 每个实验跑 seed 17/42/2026，其余与已有运行完全相同：
+
+```bash
+qsub -v EXPERIMENT=L3_B050_BE,SEED=17,RUN_ID=dev_L3_B050_BE_seed17_20261114 scripts/katana/train.pbs
+qsub -v EXPERIMENT=L3_B050_BE,SEED=42,RUN_ID=dev_L3_B050_BE_seed42_20261114 scripts/katana/train.pbs
+qsub -v EXPERIMENT=L3_B050_BE,SEED=2026,RUN_ID=dev_L3_B050_BE_seed2026_20261114 scripts/katana/train.pbs
+# 可选对照：把 EXPERIMENT 换成 M0_BE，RUN_ID 相应改名
+```
+
+**评价注意（E）：** 验证集的人工遮挡测试用的也是横条，训练时见过同类遮挡，结果会偏乐观；干净图片 mAP 与测试集的自然遮挡子集（多为侧面柱子，形状不同）才是公平检验。结论按三种子配对比较给出，单种子只作探索。
