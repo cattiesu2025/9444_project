@@ -534,15 +534,45 @@ class PMTRandomErasing:
         return img
 
 
+class BandErasing:
+    """横条遮挡增强（本组新增，非作者代码）：以概率 p 擦除与局部监督区域对齐的一整条水平带。
+
+    把图像高度等分为 regions 条，区域 j 为行 [floor(j*H/q), floor((j+1)*H/q))，与 LocalHead 在 patch
+    网格上的划分方式一致；随机选一条、整行宽度擦除，填充值与 PMTRandomErasing 相同。
+    p=0 时直接返回，不消耗随机数，因此不改变已有实验的增强随机序列。
+    """
+
+    def __init__(self, p: float = 0.5, regions: int = 3, mean=IMAGENET_MEAN):
+        if not 0 <= p <= 1:
+            raise ValueError("band erasing probability must be in [0, 1]")
+        if regions < 1:
+            raise ValueError("band erasing needs at least one region")
+        self.p, self.regions, self.mean = p, regions, mean
+
+    def band(self, height: int, j: int) -> tuple[int, int]:
+        return j * height // self.regions, (j + 1) * height // self.regions
+
+    def __call__(self, img):
+        if self.p == 0 or random.uniform(0, 1) >= self.p:
+            return img
+        j = random.randrange(self.regions)
+        top, bottom = self.band(img.size()[1], j)
+        channels = img.size()[0]
+        for c in range(channels):
+            img[c, top:bottom, :] = self.mean[c] if channels == 3 else self.mean[0]
+        return img
+
+
 class PMTTrainTransform:
     """作者训练增强的等价实现，灰度转换改为由采样器逐样本决定。
 
     rgb：flip → [Grayscale(3) 若 gray=True] → ToTensor → Normalize → RandomErasing
     ir ：flip → RandomChoice(ColorJitter(0.3, 0.3), GaussianBlur(21, (0.1, 3))) → ToTensor → Normalize → RandomErasing
     作者原实现中第一阶段对全部 RGB 转灰度，等价于 gray_probability=1.0。
+    band_erasing > 0 时在最后追加 BandErasing（两种模态都作用）；默认 0，与作者增强完全一致。
     """
 
-    def __init__(self, modality: str):
+    def __init__(self, modality: str, band_erasing: float = 0.0, band_regions: int = 3):
         _require_torch()
         from torchvision import transforms as T
         self.modality = modality
@@ -553,6 +583,7 @@ class PMTTrainTransform:
         self.to_tensor = T.ToTensor()
         self.normalize = T.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD)
         self.erase = PMTRandomErasing(p=0.5)
+        self.band_erase = BandErasing(p=band_erasing, regions=band_regions)
 
     def __call__(self, img: Image.Image, gray: bool = False):
         img = self.flip(img)
@@ -563,7 +594,7 @@ class PMTTrainTransform:
             if gray:
                 raise ValueError("灰度转换只作用于可见光来源图片，IR 不变")
             img = self.ir_aug(img)
-        return self.erase(self.normalize(self.to_tensor(img)))
+        return self.band_erase(self.erase(self.normalize(self.to_tensor(img))))
 
 
 def make_test_transform():
@@ -819,10 +850,11 @@ def build_train_loader(manifest: str | os.PathLike | Sequence[dict], root: str |
                        images_per_identity_per_modality: int = 4, seed: int = 17,
                        gray_probability: GrayProbability = 1.0, image_size: tuple[int, int] = (256, 128),
                        num_workers: int = 4, pin_memory: bool = True, preload: bool = False,
-                       batches_per_epoch: int | None = None):
+                       batches_per_epoch: int | None = None, band_erasing: float = 0.0, band_regions: int = 3):
     """一站式构建训练 DataLoader。返回 (loader, sampler, dataset, label_map)。
 
     每个 epoch 前调用 sampler.set_epoch(epoch)，切换阶段时调用 sampler.set_gray_probability(...)。
+    band_erasing/band_regions：横条遮挡增强的概率与区域数（默认关闭）。
     """
     _require_torch()
     rows = load_manifest(manifest) if isinstance(manifest, (str, os.PathLike)) else list(manifest)
@@ -831,7 +863,8 @@ def build_train_loader(manifest: str | os.PathLike | Sequence[dict], root: str |
     sampler = PMTBatchSampler(rows, label_map, identities_per_batch, images_per_identity_per_modality,
                               seed=seed, batches_per_epoch=batches_per_epoch, gray_probability=gray_probability)
     train_rows = [i for i in select_rows(rows, train_splits) if rows[i]["identity"] in label_map]
-    dataset = SYSUTrainData(rows, root, label_map, image_size=image_size,
+    transforms = {m: PMTTrainTransform(m, band_erasing=band_erasing, band_regions=band_regions) for m in ("rgb", "ir")}
+    dataset = SYSUTrainData(rows, root, label_map, image_size=image_size, transforms=transforms,
                             preload=preload, preload_rows=train_rows)
     loader = DataLoader(dataset, batch_sampler=sampler, collate_fn=collate_batch,
                         num_workers=num_workers, pin_memory=pin_memory)
@@ -849,6 +882,9 @@ def build_train_loader_from_config(config: dict, **overrides):
         images_per_identity_per_modality=train["images_per_identity_per_modality"],
         seed=train["seeds"][0],
         image_size=tuple(config["model"]["image_size"]),
+        # 横条遮挡增强：区域数与局部监督相同，保证擦除带与局部区域对齐
+        band_erasing=config.get("augmentation", {}).get("band_erasing", 0.0),
+        band_regions=config["local"]["regions"],
     )
     kwargs.update(overrides)
     return build_train_loader(**kwargs)
