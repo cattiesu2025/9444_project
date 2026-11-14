@@ -188,6 +188,66 @@ Reading:
 - M2's smaller occlusion drop does not carry over to the other variants. Part of it is likely the lower starting point, so RQ2 has no consistent support from artificial occlusion.
 - Basis for the freeze decision (validation only; the test split and natural-occlusion subset were not used): if the team adopts an L configuration for M2/M3 seeds 42/2026, L3_B050 is the candidate supported by these numbers. Any claim of improvement needs the three-seed comparison.
 
+The team froze L3_B050. The three-seed comparison below supersedes the seed-17 reading above: the +0.54 does not hold.
+
+## Frozen L3_B050 over three seeds (2026-11-14)
+
+B trained L3_B050 seeds 42 and 2026 with the frozen configuration (archives match `SHA256SUMS`; checkpoint, `.sha256` file and the features' `checkpoint_sha256` agree; config identical to seed 17 apart from the seed). All comparisons are paired with M0 seeds 17/42/2026 on the same 10 galleries (30 seed–gallery pairs).
+
+**Clean retrieval:** L3_B050 34.67 ± 0.34 mAP vs M0 34.57 ± 0.46 (per seed +0.54, +0.04, −0.29; mean +0.10; L higher on 15/30 pairs). Rank-1 31.96 ± 0.38 vs 32.21 ± 0.91 (−0.24). Training-time local supervision alone does not change clean accuracy.
+
+**Robustness** (M0 seeds 42/2026 were run for this comparison; clean re-extraction consistency PASS for all six runs). Mean mAP over three seeds:
+
+| Condition | M0 | L3_B050 | Difference | L higher (of 30) |
+| --- | --- | --- | --- | --- |
+| clean | 34.57 | 34.67 | +0.10 | 16 |
+| top 20% | 28.92 | 28.79 | −0.13 | 14 |
+| middle 20% | 32.55 | 32.88 | +0.33 | 18 |
+| bottom 20% | 25.92 | 25.86 | −0.06 | 17 |
+| middle 10% | 33.63 | 33.93 | +0.30 | 20 |
+| blur σ=2 | 33.47 | 33.45 | −0.02 | 16 |
+
+Only middle occlusion shows a small, mostly consistent advantage; top, bottom and blur are level. The seed-17 pattern (higher under every perturbation, +1.0 for middle) does not replicate.
+
+**Test-time fusion of local features** (`scripts/local_concat_eval.py`, all 9 conditions, 3 regions for every model; M0 has no local head, so it uses untrained mean-pooled parts). Mean mAP over three seeds:
+
+| Condition | M0 | M0 + untrained parts | L3_B050 | L3_B050 + local, equal | L3_B050 + local, global 50% |
+| --- | --- | --- | --- | --- | --- |
+| clean | 34.57 | 33.90 | 34.66 | 34.80 | **34.83** |
+| top 10% | **32.37** | 32.21 | 32.14 | 32.12 | 32.19 |
+| top 20% | 28.92 | **29.12** | 28.80 | 28.92 | 28.97 |
+| middle 10% | 33.63 | 32.67 | 33.92 | 34.01 | **34.05** |
+| middle 20% | 32.55 | 31.52 | 32.87 | 33.00 | **33.05** |
+| bottom 10% | 31.07 | 30.38 | 30.91 | 31.09 | **31.10** |
+| bottom 20% | 25.91 | 24.96 | 25.85 | 25.88 | **25.95** |
+| blur σ=1 | 34.31 | 33.71 | 34.28 | **34.49** | **34.49** |
+| blur σ=2 | 33.47 | 33.03 | 33.45 | **33.71** | **33.71** |
+
+Paired differences (30 seed–gallery pairs; per-seed values in brackets):
+
+| Condition | Fusion vs L3_B050 global | Fusion vs M0 global | M0 + parts vs M0 |
+| --- | --- | --- | --- |
+| clean | +0.17 (+0.12, +0.21, +0.17); 26/30 | +0.26 (+0.64, +0.26, −0.12); 19/30 | −0.67; 0/30 |
+| top 10% | +0.06 (+0.13, +0.04, +0.01); 21/30 | −0.18 (+0.58, −0.32, −0.81); 13/30 | −0.17; 10/30 |
+| top 20% | +0.17 (+0.20, +0.16, +0.16); 25/30 | +0.05 (+0.48, +0.37, −0.71); 16/30 | +0.20; 18/30 |
+| middle 10% | +0.13 (+0.08, +0.22, +0.09); 23/30 | +0.42 (+1.00, +0.35, −0.09); 22/30 | −0.96; 0/30 |
+| middle 20% | +0.18 (+0.19, +0.32, +0.02); 22/30 | +0.50 (+1.19, +0.17, +0.15); 21/30 | −1.03; 0/30 |
+| bottom 10% | +0.19 (+0.22, +0.14, +0.20); 26/30 | +0.03 (+0.80, −0.15, −0.56); 16/30 | −0.68; 1/30 |
+| bottom 20% | +0.10 (+0.26, −0.04, +0.08); 22/30 | +0.04 (+0.69, −0.09, −0.49); 17/30 | −0.95; 0/30 |
+| blur σ=1 | +0.21 (+0.22, +0.22, +0.18); 28/30 | +0.18 (+0.59, +0.13, −0.18); 17/30 | −0.60; 2/30 |
+| blur σ=2 | +0.26 (+0.31, +0.26, +0.20); 27/30 | +0.24 (+0.84, +0.09, −0.23); 20/30 | −0.44; 4/30 |
+
+- Fusion improves L3_B050 under all 9 conditions, on 26 of 27 seed–condition pairs (the exception is −0.04), but by only 0.06–0.26 mAP.
+- The same fusion on M0 hurts under 8 of 9 conditions (up to −1.0). Local features help only when trained with local identity losses.
+- Against M0, L3_B050 + fusion gains on clean (+0.26), middle occlusion (+0.42/+0.50) and blur (+0.18/+0.24); top and bottom occlusion are level, and top 10% is slightly lower (−0.18). Only middle 20% is positive on all three seeds.
+- Fusion makes Rank-1 no better on clean queries (31.93 vs 32.18 for M0).
+
+Both fusion weightings were fixed before these runs; the 50% global weighting is reported as the main variant because it does not depend on q. Fusion changes the retrieval dimension (768 → 3,072), so it stays outside the main protocol and is reported as a separate variant.
+
+Consistency: every run passes except the L3_B050 seed-42 gallery re-extraction, which reports CHECK (min cosine 0.9974). A re-run gave the identical value; a per-image check shows a single image (`cam5/0335/0005.jpg`) below 0.999, while all other 1,973 gallery images are at least 0.9997 (median 1.0). This is a numerical difference on one image and does not affect the conclusions.
+
+Reading: training-time local supervision alone leaves clean accuracy unchanged. Combined with test-time fusion of its trained local features, it gives a small gain over L alone under every condition and a small gain over PMT on clean, middle-occluded and blurred queries, clearest for middle occlusion; top and bottom occlusion are level. All effects are below one mAP point.
+
 ## Status
 
-The evaluator, robustness tool and concatenation script are complete and self-tested. Evaluated on val: V0/AGW/CAJ_fix (team lead), M0 and M1 seeds 17/42/2026, F/M2/M3 seed17, and the three L exploration runs, including robustness and concatenation for every L run. Remaining: three-seed evaluation of the frozen configuration, final test-split evaluation, natural-occlusion subset, error analysis.
+The evaluator, robustness tool and concatenation script are complete and self-tested. Evaluated on val: V0/AGW/CAJ_fix (team lead), M0, M1 and L3_B050 seeds 17/42/2026, F/M2/M3 seed17, the three L exploration runs, robustness for M0 and L3_B050 over three seeds, and fusion for M0 and L3_B050 over three seeds. Remaining: L3_B050_BE (band erasing, PR #12) once trained, final test-split evaluation, natural-occlusion subset, error analysis.
