@@ -570,9 +570,14 @@ class PMTTrainTransform:
     ir ：flip → RandomChoice(ColorJitter(0.3, 0.3), GaussianBlur(21, (0.1, 3))) → ToTensor → Normalize → RandomErasing
     作者原实现中第一阶段对全部 RGB 转灰度，等价于 gray_probability=1.0。
     band_erasing > 0 时在最后追加 BandErasing（两种模态都作用）；默认 0，与作者增强完全一致。
+    channel_exchange > 0 时加入 CAJ 的通道增强（Ye et al., ICCV 2021，复用 agw.py 的实现），排在随机擦除之后：
+      rgb：以该概率做 ChannelExchange（随机复制一个颜色通道，得到类 IR 的单通道图）；
+      ir ：做 ChannelAdapGray(0.5)。
+    CAJ 原版给 RGB 额外生成一个交换视图（RGB 数量翻倍）；这里改为按概率替换，以保持 PMT 的 P×K 批次结构。
+    默认 0 时不消耗随机数，已有实验的增强序列不变。
     """
 
-    def __init__(self, modality: str, band_erasing: float = 0.0, band_regions: int = 3):
+    def __init__(self, modality: str, band_erasing: float = 0.0, band_regions: int = 3, channel_exchange: float = 0.0):
         _require_torch()
         from torchvision import transforms as T
         self.modality = modality
@@ -584,6 +589,12 @@ class PMTTrainTransform:
         self.normalize = T.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD)
         self.erase = PMTRandomErasing(p=0.5)
         self.band_erase = BandErasing(p=band_erasing, regions=band_regions)
+        if not 0 <= channel_exchange <= 1:
+            raise ValueError("channel_exchange must be a probability in [0, 1]")
+        self.channel_exchange = channel_exchange
+        if channel_exchange:
+            from .agw import ChannelAdapGray, ChannelExchange   # agw 依赖 data，延迟导入避免循环
+            self.exchange = ChannelExchange(gray=2) if modality == "rgb" else ChannelAdapGray(0.5)
 
     def __call__(self, img: Image.Image, gray: bool = False):
         img = self.flip(img)
@@ -594,7 +605,11 @@ class PMTTrainTransform:
             if gray:
                 raise ValueError("灰度转换只作用于可见光来源图片，IR 不变")
             img = self.ir_aug(img)
-        return self.band_erase(self.erase(self.normalize(self.to_tensor(img))))
+        out = self.erase(self.normalize(self.to_tensor(img)))
+        if self.channel_exchange:
+            if self.modality == "ir" or random.uniform(0, 1) < self.channel_exchange:
+                out = self.exchange(out)
+        return self.band_erase(out)
 
 
 def make_test_transform():
@@ -850,11 +865,13 @@ def build_train_loader(manifest: str | os.PathLike | Sequence[dict], root: str |
                        images_per_identity_per_modality: int = 4, seed: int = 17,
                        gray_probability: GrayProbability = 1.0, image_size: tuple[int, int] = (256, 128),
                        num_workers: int = 4, pin_memory: bool = True, preload: bool = False,
-                       batches_per_epoch: int | None = None, band_erasing: float = 0.0, band_regions: int = 3):
+                       batches_per_epoch: int | None = None, band_erasing: float = 0.0, band_regions: int = 3,
+                       channel_exchange: float = 0.0):
     """一站式构建训练 DataLoader。返回 (loader, sampler, dataset, label_map)。
 
     每个 epoch 前调用 sampler.set_epoch(epoch)，切换阶段时调用 sampler.set_gray_probability(...)。
     band_erasing/band_regions：横条遮挡增强的概率与区域数（默认关闭）。
+    channel_exchange：CAJ 通道增强中 RGB 的交换概率（>0 时 IR 同时启用自适应灰度；默认关闭）。
     """
     _require_torch()
     rows = load_manifest(manifest) if isinstance(manifest, (str, os.PathLike)) else list(manifest)
@@ -863,7 +880,8 @@ def build_train_loader(manifest: str | os.PathLike | Sequence[dict], root: str |
     sampler = PMTBatchSampler(rows, label_map, identities_per_batch, images_per_identity_per_modality,
                               seed=seed, batches_per_epoch=batches_per_epoch, gray_probability=gray_probability)
     train_rows = [i for i in select_rows(rows, train_splits) if rows[i]["identity"] in label_map]
-    transforms = {m: PMTTrainTransform(m, band_erasing=band_erasing, band_regions=band_regions) for m in ("rgb", "ir")}
+    transforms = {m: PMTTrainTransform(m, band_erasing=band_erasing, band_regions=band_regions,
+                                       channel_exchange=channel_exchange) for m in ("rgb", "ir")}
     dataset = SYSUTrainData(rows, root, label_map, image_size=image_size, transforms=transforms,
                             preload=preload, preload_rows=train_rows)
     loader = DataLoader(dataset, batch_sampler=sampler, collate_fn=collate_batch,
@@ -885,6 +903,7 @@ def build_train_loader_from_config(config: dict, **overrides):
         # 横条遮挡增强：区域数与局部监督相同，保证擦除带与局部区域对齐
         band_erasing=config.get("augmentation", {}).get("band_erasing", 0.0),
         band_regions=config["local"]["regions"],
+        channel_exchange=config.get("augmentation", {}).get("channel_exchange", 0.0),
     )
     kwargs.update(overrides)
     return build_train_loader(**kwargs)

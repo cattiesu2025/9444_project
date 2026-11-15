@@ -1,0 +1,7 @@
+{
+  "experiment": "M0_CA",
+  "owner": "E",
+  "training": {"seeds": [17, 42, 2026]},
+  "smooth": {"mode": "off"},
+  "augmentation": {"channel_exchange": 0.5}
+}

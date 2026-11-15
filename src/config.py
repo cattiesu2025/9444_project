@@ -4,7 +4,7 @@ from copy import deepcopy
 import json
 from pathlib import Path
 
-EXPERIMENTS = ("V0", "M0", "M1", "M2", "M3", "L3_B025", "L3_B050", "L2_B025", "L3_B050_BE", "M0_BE", "F", "Q", "AGW", "CAJ", "CAJ_fix")
+EXPERIMENTS = ("V0", "M0", "M1", "M2", "M3", "L3_B025", "L3_B050", "L2_B025", "L3_B050_BE", "M0_BE", "M0_CA", "L3_B050_CA", "F", "Q", "AGW", "CAJ", "CAJ_fix")
 
 def merge(base: dict, override: dict) -> dict:
     """Recursively override dictionaries; replace lists and scalar values."""
@@ -47,6 +47,9 @@ def validate(config: dict) -> None:
     band = config.get("augmentation", {}).get("band_erasing", 0.0)
     if not 0 <= band <= 1:
         raise ValueError("band_erasing must be a probability in [0, 1]")
+    exchange = config.get("augmentation", {}).get("channel_exchange", 0.0)
+    if not 0 <= exchange <= 1:
+        raise ValueError("channel_exchange must be a probability in [0, 1]")
     if config["model"]["retrieval_feature"] != "global_only":
         raise ValueError("Core comparisons must use global-only retrieval")
     if config["data"]["evaluation_split"] != "val":
