@@ -39,17 +39,22 @@ if [[ -n "${SYSU_MM01_ROOT:-}" ]]; then ARGS+=(--root "$SYSU_MM01_ROOT"); fi
 if [[ -n "${PMT_PRETRAINED:-}" ]]; then ARGS+=(--pretrained "$PMT_PRETRAINED"); fi
 if [[ "${ACTIVATION_CHECKPOINTING:-0}" == 1 ]]; then ARGS+=(--activation-checkpointing); fi
 if [[ "${RESUME:-0}" == 1 ]]; then ARGS+=(--resume "checkpoints/$RUN_ID/last.pt"); fi
+# FINAL=1: frozen config trained on train+val (395 identities); RUN_ID must start with final_.
+if [[ "${FINAL:-0}" == 1 ]]; then ARGS+=(--final); fi
 # Twenty-batch preflight allows AMP scale calibration. MAX_STEPS=0 runs all remaining epochs.
 if [[ "${MAX_STEPS:-20}" != 0 ]]; then ARGS+=(--max-steps "${MAX_STEPS:-20}"); fi
 "$PMT_PYTHON" -m src.train "${ARGS[@]}"
 
-# Full runs hand both validation modalities to E after training completes.
+# Full runs hand both modalities to E after training completes: validation for
+# development runs, test for final runs (final models trained on validation identities).
+SPLIT=val
+if [[ "${FINAL:-0}" == 1 ]]; then SPLIT=test; fi
 if [[ "${MAX_STEPS:-20}" == 0 && "${EXPORT_ON_COMPLETE:-1}" == 1 ]]; then
-    "$PMT_PYTHON" -m src.export_features --checkpoint "checkpoints/$RUN_ID/last.pt" --modality ir --output "artifacts/results/$RUN_ID/query_val.npz" --device cuda --batch-size 64
-    "$PMT_PYTHON" -m src.export_features --checkpoint "checkpoints/$RUN_ID/last.pt" --modality rgb --output "artifacts/results/$RUN_ID/gallery_pool_val.npz" --device cuda --batch-size 64
+    "$PMT_PYTHON" -m src.export_features --checkpoint "checkpoints/$RUN_ID/last.pt" --split "$SPLIT" --modality ir --output "artifacts/results/$RUN_ID/query_${SPLIT}.npz" --device cuda --batch-size 64
+    "$PMT_PYTHON" -m src.export_features --checkpoint "checkpoints/$RUN_ID/last.pt" --split "$SPLIT" --modality rgb --output "artifacts/results/$RUN_ID/gallery_pool_${SPLIT}.npz" --device cuda --batch-size 64
 fi
 # Pilot runs export into a subdirectory so the final export path stays free for the resumed full run.
 if [[ "${PILOT_EXPORT:-0}" == 1 ]]; then
-    "$PMT_PYTHON" -m src.export_features --checkpoint "checkpoints/$RUN_ID/last.pt" --modality ir --output "artifacts/results/$RUN_ID/pilot/query_val.npz" --device cuda --batch-size 64
-    "$PMT_PYTHON" -m src.export_features --checkpoint "checkpoints/$RUN_ID/last.pt" --modality rgb --output "artifacts/results/$RUN_ID/pilot/gallery_pool_val.npz" --device cuda --batch-size 64
+    "$PMT_PYTHON" -m src.export_features --checkpoint "checkpoints/$RUN_ID/last.pt" --split "$SPLIT" --modality ir --output "artifacts/results/$RUN_ID/pilot/query_${SPLIT}.npz" --device cuda --batch-size 64
+    "$PMT_PYTHON" -m src.export_features --checkpoint "checkpoints/$RUN_ID/last.pt" --split "$SPLIT" --modality rgb --output "artifacts/results/$RUN_ID/pilot/gallery_pool_${SPLIT}.npz" --device cuda --batch-size 64
 fi

@@ -41,12 +41,22 @@ def export_dataset(model, dataset, output, metadata, batch_size=128, num_workers
     return metadata
 
 
+def check_split(stage: str, split: str, allow_dev_checkpoint: bool = False) -> None:
+    """最终模型训练时见过验证集身份，不能在验证集上评价；开发模型导出测试集需显式声明（降级方案）。"""
+    if stage == "final" and split != "test":
+        raise ValueError("Final-stage checkpoints trained on validation identities; export the test split only")
+    if stage != "final" and split == "test" and not allow_dev_checkpoint:
+        raise ValueError("Test export from a development checkpoint needs --allow-dev-checkpoint (fallback only)")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--checkpoint", required=True)
     parser.add_argument("--output", required=True, help="Output .npz file (must not already exist)")
     parser.add_argument("--root")
-    parser.add_argument("--split", choices=("val",), default="val")
+    parser.add_argument("--split", choices=("val", "test"), default="val")
+    parser.add_argument("--allow-dev-checkpoint", action="store_true",
+                        help="Export the test split from a development (296-identity) checkpoint; fallback only, report it as such")
     parser.add_argument("--modality", choices=("rgb", "ir"), required=True)
     parser.add_argument("--batch-size", type=int, default=128)
     parser.add_argument("--num-workers", type=int, default=0)
@@ -56,6 +66,8 @@ def main():
         parser.error("output must end in .npz")
     checkpoint = load_checkpoint(args.checkpoint)
     cfg = checkpoint["config"]
+    stage = cfg["data"].get("stage", "dev")
+    check_split(stage, args.split, args.allow_dev_checkpoint)
     device = choose_device(args.device)
     if cfg["model"]["backbone"] == AGW_BACKBONE:
         model = AGW(checkpoint["num_classes"], cfg["model"]).to(device)
@@ -68,6 +80,7 @@ def main():
     if manifest_hash != checkpoint["manifest_sha256"]:
         raise ValueError("Evaluation manifest changed since training; verify data provenance before exporting")
     metadata = {"evaluation_manifest_sha256": manifest_hash, "run_id": checkpoint["run_id"], "split": args.split, "modality": args.modality,
+                "training_stage": stage,
                 "checkpoint_sha256": sha256(args.checkpoint), "global_step": checkpoint["global_step"],
                 "seed": checkpoint["seed"], "next_epoch_zero_based": checkpoint["sampler"]["epoch"],
                 "next_batch": checkpoint["sampler"]["start_batch"],

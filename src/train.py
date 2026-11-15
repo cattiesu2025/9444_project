@@ -1,5 +1,6 @@
 """B's development baseline. Run: python -m src.train --help."""
 import argparse
+import copy
 import importlib.metadata
 import json
 import platform
@@ -18,6 +19,21 @@ from .training import (seed_all, make_optimizer, EpochSchedule, isolated_batches
 
 
 PROJECT = Path(__file__).resolve().parents[1]
+
+
+def finalize(cfg: dict) -> dict:
+    """最终阶段：冻结配置不变，train+val 合并训练（296+99=395 身份），之后只在测试集评价一次。"""
+    cfg = copy.deepcopy(cfg)
+    data = cfg["data"]
+    data["stage"] = "final"
+    data["train_splits"] = ["train", "val"]
+    data["evaluation_split"] = "test"
+    data["train_identities"] = data["train_identities"] + data["validation_identities"]
+    return cfg
+
+
+def is_final(cfg: dict) -> bool:
+    return cfg["data"].get("stage") == "final"
 
 
 def stage_at(cfg, epoch):
@@ -63,6 +79,13 @@ def run(args):
         raise ValueError("Local supervision must be enabled exactly for M2/M3/L3_B025/L3_B050/L2_B025/L3_B050_BE")
     if checkpoint and checkpoint["run_id"] != args.run_id:
         raise ValueError("Resume requires the original --run-id")
+    final = bool(getattr(args, "final", False))
+    if checkpoint and final != is_final(cfg):
+        raise ValueError("--final must match the checkpoint being resumed")
+    if not checkpoint and final:
+        cfg = finalize(cfg)
+    if final != args.run_id.startswith("final_"):
+        raise ValueError("Final-stage run IDs must start with 'final_' (and only final-stage runs may)")
     if not checkpoint and getattr(args, "activation_checkpointing", False):
         cfg["model"]["activation_checkpointing"] = True
     seed = checkpoint["seed"] if checkpoint else args.seed
@@ -76,10 +99,11 @@ def run(args):
     pretrained = Path(args.pretrained) if args.pretrained else PROJECT / "checkpoints/jx_vit_base_p16_224-80ecf9dd.pth"
     if not checkpoint and not pretrained.is_file():
         raise FileNotFoundError(f"ImageNet initialization required: {pretrained}. Run scripts/prepare_pretrained.py first.")
-    loader, sampler, dataset, label_map = get_train_loader(cfg, root=args.root, download=False,
+    loader, sampler, dataset, label_map = get_train_loader(cfg, final=final, root=args.root, download=False,
         num_workers=args.num_workers, seed=seed, pin_memory=device.type == "cuda")
     if len(label_map) != cfg["data"]["train_identities"]:
-        raise ValueError("Unexpected development identity count; verify A's audit")
+        raise ValueError(f"Unexpected {'final' if final else 'development'} identity count "
+                         f"{len(label_map)} (expected {cfg['data']['train_identities']}); verify A's audit")
     if len(loader) == 0:
         raise ValueError("No training batches")
     gray_schedule = None if cfg["experiment"] == "V0" else from_config(cfg, sampler.batches_per_epoch)
@@ -195,6 +219,8 @@ def main():
     parser.add_argument("--root")
     parser.add_argument("--pretrained")
     parser.add_argument("--resume")
+    parser.add_argument("--final", action="store_true",
+                        help="Final stage: train on train+val (395 identities) with the frozen config; run ID must start with final_")
     parser.add_argument("--activation-checkpointing", action="store_true", help="Recompute Transformer blocks to reduce training activation memory")
     parser.add_argument("--seed", type=int, default=17)
     parser.add_argument("--device", choices=("auto", "cpu", "mps", "cuda"), default="auto")
