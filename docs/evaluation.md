@@ -248,6 +248,43 @@ Consistency: every run passes except the L3_B050 seed-42 gallery re-extraction, 
 
 Reading: training-time local supervision alone leaves clean accuracy unchanged. Combined with test-time fusion of its trained local features, it gives a small gain over L alone under every condition and a small gain over PMT on clean, middle-occluded and blurred queries, clearest for middle occlusion; top and bottom occlusion are level. All effects are below one mAP point.
 
+## Band erasing: L3_B050_BE and M0_BE over three seeds (2026-11-15)
+
+B trained both band-erasing experiments (PR #12) with seeds 17/42/2026. All eight archives match `SHA256SUMS`. For each of the six runs the checkpoint, its `.sha256` file and the `checkpoint_sha256` of both exported feature files agree, and the training manifest matches. Configs differ from L3_B050 / M0 only in `augmentation.band_erasing = 0.5` (M0_BE also sets `local.regions = 3`, which only places the bands; activation checkpointing differs from M0 seed 17 and affects memory only). The recorded `src/data.py` hash equals the file merged in PR #12, so the band-erasing code was used.
+
+**Clean retrieval** (mean ± SD over three seeds):
+
+| Model | mAP | Rank-1 |
+| --- | --- | --- |
+| M0 | 34.57 ± 0.46 | 32.21 ± 0.91 |
+| M0_BE | 33.68 ± 0.28 | 32.09 ± 0.50 |
+| L3_B050 | 34.67 ± 0.34 | 31.96 ± 0.38 |
+| L3_B050_BE | 33.64 ± 0.59 | 31.92 ± 0.28 |
+
+Band erasing lowers mAP on every seed: L3_B050_BE − L3_B050 = −1.03 (−1.82, −0.73, −0.54; higher on 6/30 pairs); M0_BE − M0 = −0.89 (−0.38, −0.71, −1.59; 5/30). Rank-1 is unchanged, so the loss is in lower-ranked matches.
+
+**Robustness** (all 9 conditions, mean mAP over three seeds; paired difference and pairs where the band-erasing model is higher):
+
+| Condition | M0 | M0_BE | L3_B050 | L3_B050_BE | L3_B050_BE − L3_B050 | M0_BE − M0 |
+| --- | --- | --- | --- | --- | --- | --- |
+| clean | 34.57 | 33.68 | 34.67 | 33.65 | −1.02; 6/30 | −0.89; 6/30 |
+| top 10% | 32.37 | 31.82 | 32.14 | 31.51 | −0.63; 12/30 | −0.55; 7/30 |
+| top 20% | 28.92 | 28.51 | 28.79 | 28.31 | −0.48; 11/30 | −0.41; 10/30 |
+| middle 10% | 33.63 | 33.10 | 33.93 | 32.98 | −0.95; 5/30 | −0.53; 12/30 |
+| middle 20% | 32.55 | 32.25 | 32.88 | 32.08 | −0.80; 7/30 | −0.29; 13/30 |
+| bottom 10% | 31.07 | 30.16 | 30.91 | 30.12 | −0.79; 6/30 | −0.91; 2/30 |
+| bottom 20% | 25.92 | 26.09 | 25.86 | 26.07 | +0.21; 20/30 | +0.17; 21/30 |
+| blur σ=1 | 34.31 | 33.33 | 34.30 | 33.38 | −0.92; 5/30 | −0.99; 4/30 |
+| blur σ=2 | 33.47 | 32.47 | 33.45 | 32.64 | −0.80; 7/30 | −1.00; 5/30 |
+
+Band erasing is worse under 8 of 9 conditions for both models. Only bottom 20% improves slightly (+0.2), even though the artificial bands resemble the training augmentation and so favour it.
+
+**Fusion** (3 regions, global 50%): fusion still helps L3_B050_BE slightly under every condition (+0.05 to +0.15; 15–23/30), but L3_B050_BE + fusion is below L3_B050 + fusion under 8 of 9 conditions (clean −1.13; 3/30), the exception again being bottom 20% (+0.26). Untrained parts hurt M0_BE under all 9 conditions (−0.49 to −1.13).
+
+Consistency: robustness re-extraction reports CHECK for L3_B050_BE seed 17 (queries, min cosine 0.9979) and M0_BE seed 42 (min 0.9987 queries, 0.9980 gallery). A per-image check finds one image below 0.999 in each affected set (`cam3/0426/0020.jpg`; `cam3/0404/0014.jpg`, `cam5/0429/0008.jpg`); medians are ≥ 0.99995. All other runs PASS.
+
+Reading: band erasing aligned with the local regions does not help. It costs about one mAP point on clean queries and under almost every perturbation, with or without local supervision, and with or without fusion. Erasing a third of the body in half of the training images is likely too strong on top of the authors' random erasing. It is reported as a negative result; L3_B050 (with optional fusion) remains the L configuration.
+
 ## Status
 
-The evaluator, robustness tool and concatenation script are complete and self-tested. Evaluated on val: V0/AGW/CAJ_fix (team lead), M0, M1 and L3_B050 seeds 17/42/2026, F/M2/M3 seed17, the three L exploration runs, robustness for M0 and L3_B050 over three seeds, and fusion for M0 and L3_B050 over three seeds. Remaining: L3_B050_BE (band erasing, PR #12) once trained, final test-split evaluation, natural-occlusion subset, error analysis.
+The evaluator, robustness tool and concatenation script are complete and self-tested. Evaluated on val: V0/AGW/CAJ_fix (team lead), M0, M1, L3_B050, L3_B050_BE and M0_BE seeds 17/42/2026, F/M2/M3 seed17, the three L exploration runs, and robustness and fusion over three seeds for M0, L3_B050, L3_B050_BE and M0_BE. Remaining: final test-split evaluation, natural-occlusion subset, error analysis.
