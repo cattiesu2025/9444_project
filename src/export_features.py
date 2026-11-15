@@ -7,6 +7,7 @@ import torch
 from torch.utils.data import DataLoader
 from .data import get_eval_dataset, collate_eval
 from .agw import AGW, BACKBONE as AGW_BACKBONE
+from .config import train_splits
 from .training import load_checkpoint, sha256
 from .train import build_model, choose_device, PROJECT
 
@@ -41,12 +42,28 @@ def export_dataset(model, dataset, output, metadata, batch_size=128, num_workers
     return metadata
 
 
+def resolve_split(cfg, requested=None):
+    """Split to export for a checkpoint: its configured evaluation split.
+
+    Development checkpoints export val only; final (train+val) checkpoints export test only.
+    The test split is therefore never touched by a development model, and a final model is never
+    evaluated on identities it was trained on.
+    """
+    split = requested or cfg["data"]["evaluation_split"]
+    if split in train_splits(cfg):
+        raise ValueError(f"Refusing to export {split}: this checkpoint was trained on {train_splits(cfg)}")
+    if split != cfg["data"]["evaluation_split"]:
+        raise ValueError(f"Refusing to export {split}: this checkpoint's evaluation split is "
+                         f"{cfg['data']['evaluation_split']} (test is reserved for final-stage checkpoints)")
+    return split
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--checkpoint", required=True)
     parser.add_argument("--output", required=True, help="Output .npz file (must not already exist)")
     parser.add_argument("--root")
-    parser.add_argument("--split", choices=("val",), default="val")
+    parser.add_argument("--split", choices=("val", "test"), help="Defaults to the checkpoint's evaluation split")
     parser.add_argument("--modality", choices=("rgb", "ir"), required=True)
     parser.add_argument("--batch-size", type=int, default=128)
     parser.add_argument("--num-workers", type=int, default=0)
@@ -56,18 +73,19 @@ def main():
         parser.error("output must end in .npz")
     checkpoint = load_checkpoint(args.checkpoint)
     cfg = checkpoint["config"]
+    split = resolve_split(cfg, args.split)
     device = choose_device(args.device)
     if cfg["model"]["backbone"] == AGW_BACKBONE:
         model = AGW(checkpoint["num_classes"], cfg["model"]).to(device)
     else:
         model = build_model(checkpoint["num_classes"], cfg, checkpoint["seed"]).to(device)
     model.load_state_dict(checkpoint["model"], strict=True)
-    dataset = get_eval_dataset(args.split, modality=args.modality, root=args.root, download=False,
+    dataset = get_eval_dataset(split, modality=args.modality, root=args.root, download=False,
                                image_size=tuple(cfg["model"]["image_size"]))
     manifest_hash = sha256(PROJECT / cfg["data"]["manifest"])
     if manifest_hash != checkpoint["manifest_sha256"]:
         raise ValueError("Evaluation manifest changed since training; verify data provenance before exporting")
-    metadata = {"evaluation_manifest_sha256": manifest_hash, "run_id": checkpoint["run_id"], "split": args.split, "modality": args.modality,
+    metadata = {"evaluation_manifest_sha256": manifest_hash, "run_id": checkpoint["run_id"], "split": split, "modality": args.modality,
                 "checkpoint_sha256": sha256(args.checkpoint), "global_step": checkpoint["global_step"],
                 "seed": checkpoint["seed"], "next_epoch_zero_based": checkpoint["sampler"]["epoch"],
                 "next_batch": checkpoint["sampler"]["start_batch"],

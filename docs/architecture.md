@@ -16,7 +16,7 @@ manifest + 固定 gallery → evaluate → metrics → 图表/Notebook
                          robustness
 ```
 
-配置采用 JSON 深度合并：字典递归覆盖，标量和列表整体替换；实验文件只记录相对 base 的差异。B 的训练器支持 M0/V0，其他扩展配置仍待各负责人接入。最终 395 身份配置需在开发配置冻结后另建，不能仅切换 evaluation split。
+配置采用 JSON 深度合并：字典递归覆盖，标量和列表整体替换；实验文件只记录相对 base 的差异。B 的训练器支持 M0/V0，其他扩展配置仍待各负责人接入。最终 395 身份配置另建为 `M0_final` / `M0_CA_final`：同时改训练划分（train+val）与评价划分（test），不能仅切换 evaluation split（见 [final_stage.md](final_stage.md)）。
 
 ## 共同接口
 

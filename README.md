@@ -107,7 +107,7 @@ loader, sampler, dataset, label_map = get_train_loader("M0")   # final=True 用 
 
 - RGB cameras：1/2/4/5；IR cameras：3/6。
 - 开发：296 身份训练、99 身份验证；96 身份测试集保留，不用于调参。
-- 最终：配置冻结后合并 395 个训练身份，从同类 ImageNet 初始化重新训练；最终配置尚待开发完成后建立。
+- 最终：合并 395 个训练身份，从同类 ImageNet 初始化重新训练，只比较 M0 与 M0_CA（`M0_final` / `M0_CA_final`，各 3 个种子），测试集只评价一次；见 [docs/final_stage.md](docs/final_stage.md)。
 - 主协议：IR→RGB、All-search、Single-shot；cam3 query 排除 cam2 gallery，采用 SYSU 身份级 CMC。
 - 固定 gallery 种子 0–9，各方法共用索引；主实验训练种子 17/42/2026。
 - 每个训练种子先平均 10 次 gallery 评价，再跨训练种子汇总均值与样本标准差。
@@ -159,7 +159,7 @@ M2/M3 首轮已完成，原步骤 2 已结束。下表日期为按内部目标 1
 | 3 | S 窗口 1/6 epochs 探索：**不做**（11/07 决定），报告中说明；Q 对照照常 | A | Q 训练完成，待 A 分析 | 11/09 |
 | 4 | 冻结配置：E 出验证集对比表后，全组决定 M0–M3 维持 q=2/β=0.5 还是改用探索结果（改则旧运行标 exploratory）；决定、日期和依据数字提交到 Git | 全组 | 等 E 对比表 | 11/08 晚 |
 | 5 | M0–M3 补 seed42、seed2026（8 次训练），E 汇总均值 ± 标准差 | B、C、D、E | 未开始 | 11/12 |
-| 6 | 最终阶段（395 身份重训 + 测试集一次评价）：按剩余时间决定执行或降级，降级须在报告中写明 | 全组 | 待决定 | 与冻结一起决定 |
+| 6 | 最终阶段（395 身份重训 + 测试集一次评价）：只做 M0 与 M0_CA 各 3 个种子（11/15 决定，依据见 [docs/final_stage.md](docs/final_stage.md)） | B、E | 代码完成，6 次训练已提交 Katana；待 E 测试集评价 | 11/16 |
 | 7 | 完整 Notebook、正文 ≤4 页报告（含 R10、R3/R12 等文献定位）、全员展示与彩排 | 全组 | Notebook 有框架，§3.2/§5 扩展实验/§6 待补 | 11/15 |
 
 另需在最终提交前锁定作者代码版本、许可证与训练依赖（见 [ATTRIBUTION.md](ATTRIBUTION.md)）。

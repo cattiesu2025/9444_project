@@ -7,7 +7,7 @@ import subprocess
 import time
 from pathlib import Path
 import torch
-from .config import load_config
+from .config import load_config, train_splits
 from .data import get_train_loader, check_pmt_layout
 from .model import PMT
 from .local_head import PMTWithLocal, add_local_loss
@@ -18,6 +18,14 @@ from .training import (seed_all, make_optimizer, EpochSchedule, isolated_batches
 
 
 PROJECT = Path(__file__).resolve().parents[1]
+DEV_EXPERIMENTS = ("M0", "V0", "M1", "F", "M2", "M3", "L3_B025", "L3_B050", "L2_B025", "L3_B050_BE", "M0_BE",
+                   "M0_CA", "L3_B050_CA", "Q")
+FINAL_METHODS = ("M0", "M0_CA")
+
+
+def base_experiment(experiment):
+    """Development method behind an experiment ID: "M0_CA_final" -> "M0_CA"."""
+    return experiment.removesuffix("_final")
 
 
 def stage_at(cfg, epoch):
@@ -57,9 +65,12 @@ def provenance(cfg, device, dataset, pretrained):
 def run(args):
     checkpoint = load_checkpoint(args.resume) if args.resume else None
     cfg = checkpoint["config"] if checkpoint else load_config(args.experiment)
-    if cfg["experiment"] not in ("M0", "V0", "M1", "F", "M2", "M3", "L3_B025", "L3_B050", "L2_B025", "L3_B050_BE", "M0_BE", "M0_CA", "L3_B050_CA", "Q"):
-        raise ValueError("This entry point supports M0/V0/M1/F/M2/M3/L3_B025/L3_B050/L2_B025/L3_B050_BE/M0_BE/M0_CA/L3_B050_CA/Q")
-    if cfg["local"]["enabled"] != (cfg["experiment"] in ("M2", "M3", "L3_B025", "L3_B050", "L2_B025", "L3_B050_BE", "L3_B050_CA")):
+    # Final-stage IDs (e.g. M0_CA_final) are the frozen development method retrained on train+val.
+    method = base_experiment(cfg["experiment"])
+    if method not in DEV_EXPERIMENTS or (method != cfg["experiment"] and method not in FINAL_METHODS):
+        raise ValueError("This entry point supports " + "/".join(DEV_EXPERIMENTS)
+                         + " and final-stage " + "/".join(m + "_final" for m in FINAL_METHODS))
+    if cfg["local"]["enabled"] != (method in ("M2", "M3", "L3_B025", "L3_B050", "L2_B025", "L3_B050_BE", "L3_B050_CA")):
         raise ValueError("Local supervision must be enabled exactly for M2/M3/L3_B025/L3_B050/L2_B025/L3_B050_BE/L3_B050_CA")
     if checkpoint and checkpoint["run_id"] != args.run_id:
         raise ValueError("Resume requires the original --run-id")
@@ -77,9 +88,11 @@ def run(args):
     if not checkpoint and not pretrained.is_file():
         raise FileNotFoundError(f"ImageNet initialization required: {pretrained}. Run scripts/prepare_pretrained.py first.")
     loader, sampler, dataset, label_map = get_train_loader(cfg, root=args.root, download=False,
-        num_workers=args.num_workers, seed=seed, pin_memory=device.type == "cuda")
+        num_workers=args.num_workers, seed=seed, pin_memory=device.type == "cuda",
+        train_splits=tuple(train_splits(cfg)))
     if len(label_map) != cfg["data"]["train_identities"]:
-        raise ValueError("Unexpected development identity count; verify A's audit")
+        raise ValueError(f"Unexpected training identity count {len(label_map)} for splits {train_splits(cfg)}; "
+                         f"expected {cfg['data']['train_identities']}. Verify A's audit")
     if len(loader) == 0:
         raise ValueError("No training batches")
     gray_schedule = None if cfg["experiment"] == "V0" else from_config(cfg, sampler.batches_per_epoch)
@@ -190,7 +203,7 @@ def run(args):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--experiment", choices=("M0", "V0", "M1", "F", "M2", "M3", "L3_B025", "L3_B050", "L2_B025", "L3_B050_BE", "M0_BE", "M0_CA", "L3_B050_CA", "Q"), default="M0")
+    parser.add_argument("--experiment", choices=DEV_EXPERIMENTS + tuple(m + "_final" for m in FINAL_METHODS), default="M0")
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--root")
     parser.add_argument("--pretrained")

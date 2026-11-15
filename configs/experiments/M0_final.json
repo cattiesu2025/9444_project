@@ -1,0 +1,12 @@
+{
+  "experiment": "M0_final",
+  "owner": "B",
+  "stage": "final",
+  "data": {
+    "train_splits": ["train", "val"],
+    "train_identities": 395,
+    "evaluation_split": "test"
+  },
+  "training": {"seeds": [17, 42, 2026]},
+  "smooth": {"mode": "off"}
+}

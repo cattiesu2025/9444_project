@@ -4,7 +4,16 @@ from copy import deepcopy
 import json
 from pathlib import Path
 
-EXPERIMENTS = ("V0", "M0", "M1", "M2", "M3", "L3_B025", "L3_B050", "L2_B025", "L3_B050_BE", "M0_BE", "M0_CA", "L3_B050_CA", "F", "Q", "AGW", "CAJ", "CAJ_fix")
+EXPERIMENTS = ("V0", "M0", "M1", "M2", "M3", "L3_B025", "L3_B050", "L2_B025", "L3_B050_BE", "M0_BE", "M0_CA", "L3_B050_CA", "F", "Q", "AGW", "CAJ", "CAJ_fix",
+               "M0_final", "M0_CA_final")
+FINAL_TRAIN_SPLITS = ["train", "val"]
+FINAL_TRAIN_IDENTITIES = 395
+
+
+def train_splits(config: dict) -> list[str]:
+    """Identity splits used for training: development ["train"], final ["train", "val"]."""
+    data = config["data"]
+    return list(data.get("train_splits", [data.get("train_split", "train")]))
 
 def merge(base: dict, override: dict) -> dict:
     """Recursively override dictionaries; replace lists and scalar values."""
@@ -52,5 +61,16 @@ def validate(config: dict) -> None:
         raise ValueError("channel_exchange must be a probability in [0, 1]")
     if config["model"]["retrieval_feature"] != "global_only":
         raise ValueError("Core comparisons must use global-only retrieval")
-    if config["data"]["evaluation_split"] != "val":
-        raise ValueError("Development configurations must evaluate on validation")
+    stage = config.get("stage", "development")
+    splits, evaluation = train_splits(config), config["data"]["evaluation_split"]
+    if stage == "development":
+        if splits != ["train"] or evaluation != "val":
+            raise ValueError("Development configurations must train on train and evaluate on validation")
+    elif stage == "final":
+        # Final stage: retrain on train+val (395 identities), evaluate once on the held-out test split.
+        if sorted(splits) != FINAL_TRAIN_SPLITS or evaluation != "test":
+            raise ValueError("Final configurations must train on train+val and evaluate on test")
+        if config["data"]["train_identities"] != FINAL_TRAIN_IDENTITIES:
+            raise ValueError("Final configurations must declare 395 training identities")
+    else:
+        raise ValueError(f"Unknown stage: {stage}")
