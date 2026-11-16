@@ -183,7 +183,7 @@ Test-time concatenation (`scripts/local_concat_eval.py`, clean mAP, global → g
 
 Reading:
 
-- M2 (q=2, β=0.5) is the only configuration below M0. Reducing β or using three regions removes the clean-accuracy cost; the two changes do not add up (L3_B025 is back at M0's level).
+- M2 (q=2, β=0.5) is the only configuration below M0 (seed 17 only; over three seeds M2 is level with M0, see "Baselines and early variants over three seeds"). Reducing β or using three regions removes the clean-accuracy cost; the two changes do not add up (L3_B025 is back at M0's level).
 - L3_B050 is the highest on clean queries and in absolute mAP under every perturbation, but its +0.54 over M0 seed17 is about one M0 seed SD and inside M0's seed range (34.24–35.10).
 - M2's smaller occlusion drop does not carry over to the other variants. Part of it is likely the lower starting point, so RQ2 has no consistent support from artificial occlusion.
 - Basis for the freeze decision (validation only; the test split and natural-occlusion subset were not used): if the team adopts an L configuration for M2/M3 seeds 42/2026, L3_B050 is the candidate supported by these numbers. Any claim of improvement needs the three-seed comparison.
@@ -285,6 +285,120 @@ Consistency: robustness re-extraction reports CHECK for L3_B050_BE seed 17 (quer
 
 Reading: band erasing aligned with the local regions does not help. It costs about one mAP point on clean queries and under almost every perturbation, with or without local supervision, and with or without fusion. Erasing a third of the body in half of the training images is likely too strong on top of the authors' random erasing. It is reported as a negative result; L3_B050 (with optional fusion) remains the L configuration.
 
+## Baselines and early variants over three seeds: V0, AGW, CAJ_fix, M2, M3 (2026-11-16)
+
+B trained seeds 42 and 2026 for the five rows that had only seed 17 (archive `extra_seeds_20261116.zip`: 10 runs, features, logs and configs, **no checkpoints**). Checks: all ten runs report `status=completed` (CAJ_fix hit the 2 h walltime once and was resumed to 100 epochs); each feature file's `checkpoint_sha256` equals the run summary's checkpoint hash; every config equals the resolved repository config (`src.config.load_config`), and the two seeds differ only in `training.seed`; git commit, manifest and pretrained hashes match the earlier Katana runs. Against the seed-17 runs, M2/M3 differ only in `model.activation_checkpointing` (memory setting, same computation). E's evaluator reproduces B's `eval_all` and three-seed summaries to two decimals on all ten runs (gallery fingerprint `d799087d813f…`). Seed 17 of V0/AGW/CAJ_fix uses the team lead's earlier result (seed means only, so their paired counts cover 20 seed×gallery pairs).
+
+| Configuration | seed17 | seed42 | seed2026 | mAP mean ± SD | Rank-1 | mINP |
+| --- | --- | --- | --- | --- | --- | --- |
+| V0 (ViT, no grey stage / MSEL / DCL) | 33.03 | 32.75 | 31.86 | 32.55 ± 0.61 | 28.09 | 24.24 |
+| AGW (ResNet-50) | 30.24 | 30.57 | 31.21 | 30.67 ± 0.50 | 26.91 | 22.27 |
+| CAJ_fix (ResNet-50) | 34.38 | 33.63 | 33.21 | 33.74 ± 0.59 | 32.23 | 23.03 |
+| M0 (PMT) | 34.38 | 34.24 | 35.10 | 34.57 ± 0.46 | 32.21 | 24.36 |
+| M1 (S) | 34.09 | 33.97 | 34.99 | 34.35 ± 0.56 | 31.86 | 24.08 |
+| M2 (L, q=2, β=0.5) | 33.78 | 35.10 | 34.75 | 34.54 ± 0.68 | 32.08 | 24.40 |
+| M3 (S+L) | 33.35 | 34.70 | 34.92 | 34.32 ± 0.85 | 32.03 | 23.91 |
+| L3_B050 | 34.92 | 34.29 | 34.81 | 34.67 ± 0.34 | 31.96 | 24.71 |
+
+| Paired comparison | per-seed mAP difference | mean | Rank-1 | higher seed×gallery |
+| --- | --- | --- | --- | --- |
+| M0 − V0 | +1.35 / +1.49 / +3.24 | +2.03 | +4.11 | 20/20 |
+| CAJ_fix − AGW | +4.15 / +3.07 / +2.00 | +3.07 | +5.32 | 19/20 |
+| M2 − M0 | −0.60 / +0.86 / −0.35 | −0.03 | −0.12 | 12/30 |
+| M3 − M0 | −1.03 / +0.46 / −0.18 | −0.25 | −0.17 | 13/30 |
+| M3 − M1 | −0.74 / +0.72 / −0.07 | −0.03 | +0.17 | 15/30 |
+| M3 − M2 | −0.43 / −0.40 / +0.17 | −0.22 | −0.05 | 10/30 |
+| L3_B050 − M2 | +1.14 / −0.81 / +0.06 | +0.13 | −0.12 | 18/30 |
+
+Reading:
+
+- PMT's grey stage and MSEL/DCL help: M0 is above V0 on every seed and gallery (+2.0 mAP, +4.1 Rank-1).
+- CAJ's channel augmentation helps the ResNet-50 baseline on every seed (+3.1 mAP, +5.3 Rank-1). The seed-17 gap of 4.1 that motivated M0_CA was at the high end; the three-seed gap is smaller but still clear. This matches the +1.45 that the same augmentation gives PMT (previous section is the controlled test).
+- M2's seed-17 deficit (−0.60, 0/10 galleries) does not replicate: over three seeds M2 is level with M0. The seed-to-seed spread (SD 0.5–0.9) is larger than every L/S effect, so M2, M3, M1 and L3_B050 are all level with M0. The earlier seed-17 ranking of L variants (q × β exploration) should be read as noise, not as evidence that β=0.25 or q=3 fixes a cost of q=2.
+- S and L do not add up: M3 (S+L) is level with M1 and slightly below M2.
+- Robustness (9 perturbations) and clean re-extraction were not run for these ten runs, because both need checkpoints. Their robustness rows stay seed 17 only.
+
+## Channel augmentation: M0_CA and L3_B050_CA (validation, 2026-11-16)
+
+CAJ's channel augmentation (PR #16; RGB channel exchange with p=0.5, IR adaptive gray) was trained by B with seeds 17/42/2026 for M0_CA and 42/2026 for L3_B050_CA. The L3_B050_CA seed-17 archive is listed in `SHA256SUMS` but was not uploaded. The five delivered archives match `SHA256SUMS`; checkpoint, `.sha256` file and both features' `checkpoint_sha256` agree; the training manifest matches; configs differ from M0 / L3_B050 only in `augmentation.channel_exchange = 0.5`; the recorded `src/data.py` equals the file merged in PR #16. E's evaluation reproduces B's numbers in [channel_augmentation.md](channel_augmentation.md).
+
+| Model | Seeds | mAP | Rank-1 | mINP |
+| --- | --- | --- | --- | --- |
+| M0 | 3 | 34.57 ± 0.46 | 32.21 ± 0.91 | 24.36 ± 0.38 |
+| **M0_CA** | 3 | **36.02 ± 0.37** | **34.24 ± 0.67** | **25.19 ± 0.20** |
+| L3_B050 | 3 | 34.67 ± 0.34 | 31.96 ± 0.38 | 24.71 ± 0.85 |
+| L3_B050_CA | 2 | 35.29 ± 0.91 | 33.23 ± 1.29 | 24.64 ± 0.31 |
+
+- M0_CA − M0: mAP +1.45 (+1.47, +2.20, +0.67; higher on 28/30 pairs), Rank-1 +2.04 (26/30). This meets the rule in [channel_augmentation.md](channel_augmentation.md), written before the results.
+- L3_B050_CA − M0_CA: mAP −0.81 (−0.50, −1.12; 2/20 pairs). Local supervision does not add to channel augmentation.
+
+**Robustness** (9 conditions, mean mAP over three seeds; all five runs PASS clean consistency):
+
+| Condition | M0 | M0_CA | M0_CA − M0 (pairs higher) | Change in drop vs M0 |
+| --- | --- | --- | --- | --- |
+| clean | 34.57 | 36.01 | +1.44 (27/30) | — |
+| top 10% | 32.37 | 33.50 | +1.12 (27/30) | −0.32 |
+| top 20% | 28.92 | 29.57 | +0.65 (19/30) | −0.79 |
+| middle 10% | 33.63 | 35.08 | +1.45 (26/30) | +0.01 |
+| middle 20% | 32.55 | 33.90 | +1.36 (27/30) | −0.08 |
+| bottom 10% | 31.07 | 31.74 | +0.67 (21/30) | −0.77 |
+| bottom 20% | 25.92 | 26.55 | +0.63 (23/30) | −0.81 |
+| blur σ=1 | 34.31 | 35.62 | +1.30 (28/30) | −0.14 |
+| blur σ=2 | 33.47 | 34.58 | +1.11 (28/30) | −0.33 |
+
+M0_CA is higher under every condition, with all three seeds positive in each, but drops about 0.8 more than M0 under top and bottom occlusion, so its advantage there halves (+0.65).
+
+**Fusion:** untrained parts hurt M0_CA (clean −1.00, −0.7 to −1.2 under perturbations); fusion leaves L3_B050_CA unchanged (+0.04 to +0.11). The L3_B050_CA seed-2026 fusion gallery re-extraction reports CHECK (min cosine 0.9977); this optional control does not affect the conclusions.
+
+## Final test results: M0_final vs M0_CA_final (2026-11-16)
+
+Frozen M0 and M0_CA retrained by B on train+val (395 identities), seeds 17/42/2026, evaluated once on the official test split ([final_stage.md](final_stage.md)). All six archives match `SHA256SUMS`. For each run: checkpoint, `.sha256` file and both test features' `checkpoint_sha256` agree; `stage = final`, `train_splits = train+val`, `evaluation_split = test`; the label map has 395 identities, including all 99 validation identities and no test identity; 24 epochs completed; training manifest matches. Test split: 3,803 IR queries, 6,775 RGB candidates, 96 identities; 10 fixed galleries (seeds 0–9) shared by both models (`gallery_test_all_single.json`, `gallery_test_indoor_single.json`). Retrieval uses the global feature only.
+
+| Protocol | Metric | M0 | M0_CA | M0_CA − M0 (per seed; pairs higher) |
+| --- | --- | --- | --- | --- |
+| All-search | mAP | 64.59 ± 1.18 | **66.19 ± 0.55** | +1.60 (+0.31, +1.13, +3.35; 28/30) |
+| | Rank-1 | 66.26 ± 1.64 | **68.18 ± 0.48** | +1.93 (+0.52, +1.64, +3.62; 28/30) |
+| | mINP | 51.84 ± 1.00 | **53.25 ± 0.69** | +1.41 (24/30) |
+| | Rank-10 | 95.30 ± 0.61 | **96.06 ± 0.13** | +0.76 (24/30) |
+| Indoor-search | mAP | 76.85 ± 0.37 | **78.39 ± 0.40** | +1.55 (+1.20, +1.10, +2.33; 30/30) |
+| | Rank-1 | 71.52 ± 0.56 | **73.28 ± 0.70** | +1.76 (+1.20, +0.89, +3.20; 27/30) |
+| | mINP | 73.16 ± 0.38 | **74.78 ± 0.30** | +1.61 (30/30) |
+| | Rank-10 | 97.23 ± 0.28 | 97.42 ± 0.19 | +0.19 (18/30) |
+
+- M0 reproduces the PMT paper's SYSU-MM01 level (All-search mAP about 65, Rank-1 about 67.5); our M0 gives 64.59 / 66.26.
+- Channel augmentation improves PMT on the test set under both protocols, on every seed, by an amount consistent with validation (+1.45). It also halves the seed SD on All-search (0.55 vs 1.18).
+
+**Natural-occlusion subset** (`scripts/natural_occlusion_eval.py`, A's 224 occluded test IR queries, annotation file committed at `5c7625e`; descriptive only). Mean over three seeds, All-search:
+
+| Group | Queries | M0 mAP | M0_CA mAP | Difference | Rank-1 difference |
+| --- | --- | --- | --- | --- | --- |
+| all | 3,803 | 64.59 | 66.19 | +1.60 | +1.93 |
+| natural occlusion | 224 | 60.19 | 61.86 | +1.67 (+0.36, +2.65, +2.01) | +2.95 |
+| not occluded | 3,579 | 64.87 | 66.46 | +1.59 | +1.86 |
+| cam 6, occluded | 219 | 60.21 | 61.99 | +1.79 | +2.98 |
+| cam 6, not occluded | 1,701 | 61.93 | 63.82 | +1.89 | +2.46 |
+| occluded, both halves | 158 | 61.76 | 63.67 | +1.91 | +2.91 |
+| occluded, lower half | 65 | 56.03 | 57.15 | +1.12 | +3.03 |
+| occluded by an object | 208 | 61.12 | 62.75 | +1.63 | +2.98 |
+
+Occluded queries are about 4.7 mAP harder. The gain from channel augmentation is similar on occluded and non-occluded queries, so it is a general improvement rather than an occlusion-specific one. Groups with very few queries (cam 3 occluded: 5; upper half: 1; occluded by a person: 16) are not interpreted.
+
+**Robustness on the test split** (9 conditions, All-search, mean mAP over three seeds):
+
+| Condition | M0 | M0_CA | M0_CA − M0 (per seed; pairs higher) |
+| --- | --- | --- | --- |
+| clean | 64.58 | 66.18 | +1.60 (+0.31, +1.12, +3.36; 27/30) |
+| top 10% | 60.75 | 62.05 | +1.30 (−0.17, +1.17, +2.90; 24/30) |
+| top 20% | 55.58 | 56.49 | +0.91 (−0.41, +0.89, +2.24; 21/30) |
+| middle 10% | 63.43 | 65.10 | +1.67 (29/30) |
+| middle 20% | 61.70 | 63.39 | +1.69 (28/30) |
+| bottom 10% | 59.46 | 61.03 | +1.57 (25/30) |
+| bottom 20% | 53.12 | 54.64 | +1.51 (27/30) |
+| blur σ=1 | 64.53 | 66.20 | +1.67 (27/30) |
+| blur σ=2 | 63.32 | 64.94 | +1.62 (25/30) |
+
+M0_CA is higher under all 9 conditions. As on validation, top occlusion shows the smallest gain (seed 17 slightly negative); on the test split bottom occlusion keeps most of the gain (+1.5). Consistency: M0 PASS for all seeds; M0_CA seeds 17 and 42 report CHECK on query re-extraction (min cosine 0.9988, 0.9986). A per-image check finds one image below 0.999 in each (`cam3/0176/0019.jpg`, `cam3/0080/0017.jpg`; medians 0.99995), a numerical difference that does not affect the results.
+
 ## Status
 
-The evaluator, robustness tool and concatenation script are complete and self-tested. Evaluated on val: V0/AGW/CAJ_fix (team lead), M0, M1, L3_B050, L3_B050_BE and M0_BE seeds 17/42/2026, F/M2/M3 seed17, the three L exploration runs, and robustness and fusion over three seeds for M0, L3_B050, L3_B050_BE and M0_BE. Remaining: final test-split evaluation, natural-occlusion subset, error analysis.
+The evaluator, robustness tool and concatenation script are complete and self-tested. Evaluated on val: V0, AGW, CAJ_fix, M0, M1, M2, M3, L3_B050, L3_B050_BE, M0_BE and M0_CA seeds 17/42/2026 (V0/AGW/CAJ_fix seed 17 by the team lead), L3_B050_CA seeds 42/2026, F seed17, the three L exploration runs, and robustness and fusion over three seeds for M0, M1, L3_B050, the BE and CA runs (V0/AGW/CAJ_fix/M2/M3 seeds 42/2026 were delivered without checkpoints, so no robustness). Evaluated on test (once, after the freeze): M0_final and M0_CA_final seeds 17/42/2026, All- and Indoor-search, natural-occlusion subset and robustness. Remaining: error analysis and retrieval-case figures for the report.
