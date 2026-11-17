@@ -1,12 +1,12 @@
 {
   "verified_on": "2026-11-17",
-  "notebook_sha256": "05c62312470e6c982b0a8b155f62964a58ea3153e317ea195660225b10a2139c",
+  "notebook_sha256": "0e3fd9a4d9ea611b49c96522e3b5ef267ebb67589ba6baefc01fbd90bb6bb9cc",
   "nbformat": "PASS",
   "isolated_clean_kernel": "PASS",
-  "executed_code_cells": 21,
+  "executed_code_cells": 16,
   "error_outputs": 0,
   "stderr_outputs": 0,
-  "todo_boxes": 21,
+  "todo_boxes": 18,
   "main_sections": [
     "## 1. Introduction, Motivation and Problem Statement",
     "## 2. Data Sources",
@@ -14,9 +14,8 @@
     "## 4. Models and Methods",
     "## 5. Results",
     "## 6. Discussion",
-    "## Appendix A. Project code"
+    "## Appendix A. Code availability and reproduction"
   ],
   "html_export": "PASS",
-  "appendix_code_matches_src": "PASS (config, model, losses, training, train, export_features, agw, train_agw; all configs)",
-  "mode": "Saved measurements; no training or download; Appendix A writes pmt_code/"
+  "mode": "Saved measurements; no training or download. Code excerpts in Section 4 and 5.3 are copied verbatim from src/; full code via the repository link in Appendix A"
 }
