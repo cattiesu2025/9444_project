@@ -8477,27 +8477,11 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <h3 id="4.8-Final-stage:-395-training-identities-and-one-test-evaluation">4.8 Final stage: 395 training identities and one test evaluation<a class="anchor-link" href="#4.8-Final-stage:-395-training-identities-and-one-test-evaluation">¶</a></h3><p>Model selection uses only the internal validation split. Once a candidate was fixed, the training and validation identities (296 + 99 = 395) were merged, and both M0 and the candidate were retrained from the same ImageNet initialisation with seeds 17, 42 and 2026. Training identities, the evaluation split and the step count change; every other setting is identical to development, including 24 epochs and taking the last checkpoint. The test split was not used to choose epochs, configurations or the candidate.</p>
 <p>The candidate changed during the project, and we report the order of events. At the configuration freeze on 8 November the candidate was the local-supervision configuration M2*. Channel augmentation was added after the freeze, with a decision rule written before its results: replace the candidate if M0 + CA is above M0 in mean validation mAP and in the same direction on every seed. M0 + CA met that rule (Section 5.6), so the final stage compares M0 and M0 + CA. Channel augmentation comes from CAJ [4] and is not our method.</p>
-<p>Leakage between stages is prevented in code rather than by convention:</p>
+<p>Leakage between stages is prevented in code rather than by convention (<code>src/config.py</code>, <code>src/export_features.py</code>, tested in <code>tests/test_final_stage.py</code>):</p>
 <ul>
 <li>Development configurations must train on <code>train</code> and evaluate on <code>val</code>; final configurations must train on <code>train + val</code> (395 identities) and evaluate on <code>test</code>. The label map is rebuilt from the configured splits, and training stops if the identity count differs from the configuration.</li>
 <li>Feature export only accepts a checkpoint's own evaluation split: a development checkpoint cannot export test features, and a final checkpoint cannot export validation features, since it was trained on them.</li>
 </ul>
-<p>The export check, from <code>src/export_features.py</code>:</p>
-<div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">resolve_split</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">requested</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Split to export for a checkpoint: its configured evaluation split.</span>
-
-<span class="sd">    Development checkpoints export val only; final (train+val) checkpoints export test only.</span>
-<span class="sd">    The test split is therefore never touched by a development model, and a final model is never</span>
-<span class="sd">    evaluated on identities it was trained on.</span>
-<span class="sd">    """</span>
-    <span class="n">split</span> <span class="o">=</span> <span class="n">requested</span> <span class="ow">or</span> <span class="n">cfg</span><span class="p">[</span><span class="s2">"data"</span><span class="p">][</span><span class="s2">"evaluation_split"</span><span class="p">]</span>
-    <span class="k">if</span> <span class="n">split</span> <span class="ow">in</span> <span class="n">train_splits</span><span class="p">(</span><span class="n">cfg</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Refusing to export </span><span class="si">{</span><span class="n">split</span><span class="si">}</span><span class="s2">: this checkpoint was trained on </span><span class="si">{</span><span class="n">train_splits</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">split</span> <span class="o">!=</span> <span class="n">cfg</span><span class="p">[</span><span class="s2">"data"</span><span class="p">][</span><span class="s2">"evaluation_split"</span><span class="p">]:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Refusing to export </span><span class="si">{</span><span class="n">split</span><span class="si">}</span><span class="s2">: this checkpoint's evaluation split is "</span>
-                         <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">cfg</span><span class="p">[</span><span class="s1">'data'</span><span class="p">][</span><span class="s1">'evaluation_split'</span><span class="p">]</span><span class="si">}</span><span class="s2"> (test is reserved for final-stage checkpoints)"</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">split</span>
-</pre></div>
 </div>
 </div>
 </div>
