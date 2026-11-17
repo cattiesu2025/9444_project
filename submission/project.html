@@ -7858,6 +7858,38 @@ a.anchor-link {
 </div>
 </div>
 </div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=13d104f9">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<h3 id="3.3-Pre-processing">3.3 Pre-processing<a class="anchor-link" href="#3.3-Pre-processing">¶</a></h3><p>The data properties above lead to the following processing, applied identically to every model:</p>
+<ul>
+<li><strong>Cleaning.</strong> The 22 identities that appear in the image folders but in none of the official split lists (1,118 images) are excluded. All remaining images are readable and no file is shared between splits.</li>
+<li><strong>Classes.</strong> Each identity is a class for the identity loss only: 296 classes in development and 395 in the final stage (train + validation). Validation and test identities are never seen in training, so evaluation is open-set retrieval rather than classification.</li>
+<li><strong>Resizing and normalisation.</strong> Images are resized once at load time to 256 × 128 for the ViT models and 288 × 144 for the ResNet-50 baselines, then normalised with ImageNet statistics. Evaluation uses only this resizing and normalisation.</li>
+<li><strong>Modality and identity balance.</strong> Because RGB images outnumber IR about 2 : 1, every training batch draws the same identities in both modalities: 8 identities × 4 images × 2 modalities.</li>
+<li><strong>Colour gap.</strong> PMT trains its first stage on greyscale RGB, so that RGB and IR inputs first share one colour space; S, CA and band erasing modify this augmentation step (Section 4).</li>
+</ul>
+<p>Augmentation parameters for each model are listed in Section 4.6.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=91fe92e9">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<blockquote>
+<p><strong>[TODO — Member A]</strong> Check this list against the EDA figures above and link each item to the figure that motivates it.</p>
+</blockquote>
+</div>
+</div>
+</div>
+</div>
 <div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=2f9e488f">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
@@ -7866,6 +7898,96 @@ a.anchor-link {
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <h2 id="4.-Models-and-Methods">4. Models and Methods<a class="anchor-link" href="#4.-Models-and-Methods">¶</a></h2><p>All models in this project share the data split, the identity-balanced sampler and the evaluator. The figure gives an overview of PMT and the optional modules; each module is switched on by configuration only, so every comparison differs from M0 in the target factor alone.</p>
 <p>Model names used throughout: <strong>M0</strong> = PMT; <strong>M1</strong> = M0 + smooth transition (S), with <strong>F</strong> its fixed-probability control; <strong>M2\</strong> = M0 + local supervision (L) with q = 2 regions; <strong>M2*</strong> = M0 + L with q = 3; <strong>M3</strong> = M0 + S + L; <strong>+ CA</strong> and <strong>+ BE</strong> add channel augmentation or band erasing. <strong>V0</strong>, <strong>AGW</strong>, <strong>CAJ</strong> and <strong>CAJfix</strong> (our corrected CAJ) are the comparison baselines. Configuration files for each name are listed in Appendix A.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=e69810e9">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<p><strong>Sources and our own work.</strong> The table separates what we took from prior work from what we did ourselves.</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Taken from prior work</th>
+<th>Our own work</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Data interface and sampler</td>
+<td>SYSU-MM01 and its official splits [2]; identity-balanced 2PK sampling as in PMT [1]</td>
+<td>Implementation, data audit, exclusion of unlisted identities, final-stage label map</td>
+</tr>
+<tr>
+<td>PMT (M0)</td>
+<td>Method and losses (PHT, MSEL, DCL) from Lu et al. [1]; pinned author code as reference</td>
+<td>Independent re-implementation, checked numerically against the author code (forward pass, losses and gradients, learning-rate schedule); guards against empty negative sets in DCL</td>
+</tr>
+<tr>
+<td>V0</td>
+<td>—</td>
+<td>Ablation that removes PMT's grey stage, MSEL and DCL</td>
+</tr>
+<tr>
+<td>AGW, CAJ</td>
+<td>Methods and training code of Ye et al. [3, 4]</td>
+<td>Port to our split, sampler and evaluator</td>
+</tr>
+<tr>
+<td>CAJfix</td>
+<td>CAJ [4]</td>
+<td>Diagnosis of the training collapse and the masked-max correction (Section 5.3)</td>
+</tr>
+<tr>
+<td>S: M1, F</td>
+<td>Idea of a gradual RGB transition, closest to PBSVT [5]</td>
+<td>Linear schedule of the greyscale probability after PMT's stage switch, and the matched-exposure control F</td>
+</tr>
+<tr>
+<td>L: M2, M2*, M3</td>
+<td>Horizontal-stripe identity supervision, as in MLMT [6], LAReViT [7] and PAT [8]</td>
+<td>Controlled application on PMT with retrieval from the global feature only, the q × β study and optional test-time fusion</td>
+</tr>
+<tr>
+<td>CA: M0 + CA</td>
+<td>Channel augmentation from CAJ [4]</td>
+<td>Integration into PMT's P × K batch (replacing images instead of adding a view) and the comparison with M0</td>
+</tr>
+<tr>
+<td>BE</td>
+<td>Random erasing as used by PMT [1]</td>
+<td>Band erasing aligned with the local regions</td>
+</tr>
+<tr>
+<td>Evaluation</td>
+<td>SYSU-MM01 protocol [2]; author evaluation code as reference</td>
+<td>Evaluator with ten fixed galleries, checked against hand-computed cases and the author code; paired multi-seed analysis; robustness perturbations</td>
+</tr>
+<tr>
+<td>Final stage</td>
+<td>—</td>
+<td>395-identity retraining protocol with leakage checks in code</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=1cc0ec13">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<blockquote>
+<p><strong>[TODO — All members]</strong> Each owner checks the row for their module (A: data; C: S; D: L; E: CA, BE, evaluation).</p>
+</blockquote>
 </div>
 </div>
 </div>
@@ -9321,6 +9443,67 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 </div>
 </div>
 </div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=07fdd3d7">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<p><strong>Comparison with published results.</strong> SYSU-MM01 test set, All-search, single-shot (Rank-1 / mAP, %):</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Backbone</th>
+<th>Published</th>
+<th>Ours</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AGW [3]</td>
+<td>ResNet-50</td>
+<td>[from paper]</td>
+<td>—</td>
+</tr>
+<tr>
+<td>CAJ [4]</td>
+<td>ResNet-50</td>
+<td>[from paper]</td>
+<td>—</td>
+</tr>
+<tr>
+<td>PMT [1]</td>
+<td>ViT-B/16</td>
+<td>67.53 / 64.98</td>
+<td>M0: [test result]</td>
+</tr>
+<tr>
+<td>PMT + CA</td>
+<td>ViT-B/16</td>
+<td>—</td>
+<td>M0 + CA: [test result]</td>
+</tr>
+</tbody>
+</table>
+<p>The published numbers come from the authors' own setting and are not directly comparable: [list the differences, e.g. training schedule and epochs, number of test trials, and any test-time tricks].</p>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=a2c947ed">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<blockquote>
+<p><strong>[TODO — Member E]</strong> Fill this table: published AGW and CAJ numbers checked against each paper (re-check PMT's against [1] as well), our test results as mean ± SD over three seeds, and the setting differences that explain the gap.</p>
+</blockquote>
+</div>
+</div>
+</div>
+</div>
 <div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=dbf2ffe1">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
@@ -9433,6 +9616,10 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 <p>[2] <a href="https://github.com/wuancong/SYSU-MM01">SYSU-MM01 dataset and evaluation protocol</a>; <a href="https://www.kaggle.com/datasets/coconutjean/sysumm01">course-linked data mirror</a>.</p>
 <p>[3] Ye, M., Shen, J., Lin, G., Xiang, T., Shao, L., &amp; Hoi, S. C. H. (2021). <em>Deep Learning for Person Re-identification: A Survey and Outlook</em>. IEEE TPAMI. <a href="https://github.com/mangye16/Cross-Modal-Re-ID-baseline/tree/e817a2672c1e14e8802617acb980a79520ef9545">Author code (AGW), pinned version</a>.</p>
 <p>[4] Ye, M., Ruan, W., Du, B., &amp; Shou, M. Z. (2021). <em>Channel Augmented Joint Learning for Visible-Infrared Recognition</em>. ICCV. <a href="https://github.com/mangye16/Cross-Modal-Re-ID-baseline/tree/e817a2672c1e14e8802617acb980a79520ef9545/ICCV21_CAJ">Author code (CAJ), same repository, <code>ICCV21_CAJ</code></a>.</p>
+<p>[5] Jiao, Xu, &amp; Zhang (2026). <em>Progressively Biased Split Vision Transformer Learning for Visible-Infrared Person Re-Identification</em> (PBSVT). IJPRAI. <a href="https://doi.org/10.1142/S0218001426550165">DOI</a>.</p>
+<p>[6] <em>Multiple Local-Guided Modality-Shared Feature Learning Transformer for Visible-Infrared Person Re-Identification</em> (MLMT) (2026). IEEE Internet of Things Journal. <a href="https://doi.org/10.1109/jiot.2026.3673575">DOI</a>.</p>
+<p>[7] <em>Local-Aware Residual Attention Vision Transformer for Visible-Infrared Person Re-Identification</em> (LAReViT) (2025). ACM TOMM. <a href="https://doi.org/10.1145/3723358">DOI</a>.</p>
+<p>[8] Ni, H., et al. (2023). <em>Part-Aware Transformer for Generalizable Person Re-identification</em> (PAT). ICCV. <a href="https://arxiv.org/abs/2308.03322">Paper</a>.</p>
 </div>
 </div>
 </div>

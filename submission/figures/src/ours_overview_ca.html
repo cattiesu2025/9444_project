@@ -1,0 +1,128 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>html,body{margin:0;background:#fff}svg{display:block}</style></head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="1050" viewBox="0 0 2000 1050"
+     font-family="Helvetica Neue, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#6b7280"/></marker>
+    <marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#f97316"/></marker>
+    <marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#2563eb"/></marker>
+    <marker id="aG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
+  </defs>
+  <style>
+    .grey{fill:#f3f4f6;stroke:#9ca3af;stroke-width:2.5}
+    .t{fill:#1f2937}
+  </style>
+
+  <!-- inputs -->
+  <rect class="grey" x="20" y="62" width="225" height="95" rx="12"/>
+  <text class="t" x="132" y="121" font-size="31" text-anchor="middle">RGB images</text>
+  <rect class="grey" x="20" y="434" width="225" height="95" rx="12"/>
+  <text class="t" x="132" y="493" font-size="31" text-anchor="middle">IR images</text>
+
+  <!-- CA box -->
+  <rect x="280" y="30" width="255" height="500" rx="16" fill="#eaf1fe" stroke="#2563eb" stroke-width="3.5"/>
+  <text x="407" y="74" font-size="30" text-anchor="middle" class="t"><tspan fill="#1d4ed8" font-weight="700">CA</tspan>: channel aug.</text>
+  <text x="407" y="104" font-size="21" text-anchor="middle" fill="#4b5563">(from CAJ, training only)</text>
+  <!-- RGB: three channels -> one copied -->
+  <g transform="translate(305,130)">
+    <rect x="0" y="0" width="34" height="34" fill="#ef4444"/>
+    <rect x="10" y="10" width="34" height="34" fill="#22c55e"/>
+    <rect x="20" y="20" width="34" height="34" fill="#3b82f6"/>
+    <line x1="68" y1="37" x2="118" y2="37" stroke="#2563eb" stroke-width="3" marker-end="url(#ab)"/>
+    <rect x="130" y="0" width="34" height="34" fill="#22c55e"/>
+    <rect x="140" y="10" width="34" height="34" fill="#22c55e"/>
+    <rect x="150" y="20" width="34" height="34" fill="#22c55e"/>
+  </g>
+  <text x="407" y="226" font-size="23" text-anchor="middle" class="t">RGB: copy one colour</text>
+  <text x="407" y="256" font-size="23" text-anchor="middle" class="t">channel to all 3, p = 0.5</text>
+  <line x1="300" y1="290" x2="515" y2="290" stroke="#93c5fd" stroke-width="2" stroke-dasharray="6 5"/>
+  <!-- IR: grey -->
+  <g transform="translate(305,318)">
+    <rect x="0" y="0" width="54" height="54" fill="#d1d5db"/>
+    <line x1="68" y1="27" x2="118" y2="27" stroke="#2563eb" stroke-width="3" marker-end="url(#ab)"/>
+    <rect x="130" y="0" width="54" height="54" fill="#6b7280"/>
+  </g>
+  <text x="407" y="408" font-size="23" text-anchor="middle" class="t">IR: random channel</text>
+  <text x="407" y="438" font-size="23" text-anchor="middle" class="t">or greyscale, p = 0.5</text>
+
+  <line x1="245" y1="110" x2="276" y2="110" stroke="#6b7280" stroke-width="3.5" marker-end="url(#ag)"/>
+  <line x1="245" y1="481" x2="276" y2="481" stroke="#6b7280" stroke-width="3.5" marker-end="url(#ag)"/>
+
+  <!-- S box -->
+  <rect x="565" y="30" width="400" height="385" rx="16" fill="#fff3e6" stroke="#f97316" stroke-width="3.5"/>
+  <text x="765" y="80" font-size="31" text-anchor="middle" class="t"><tspan fill="#c2410c" font-weight="700">S</tspan>: grey probability p</text>
+  <line x1="620" y1="125" x2="620" y2="268" stroke="#6b7280" stroke-width="3"/>
+  <line x1="620" y1="268" x2="930" y2="268" stroke="#6b7280" stroke-width="3"/>
+  <text x="596" y="138" font-size="23" class="t">1</text>
+  <text x="596" y="275" font-size="23" class="t">0</text>
+  <line x1="725" y1="132" x2="725" y2="268" stroke="#9ca3af" stroke-width="3" stroke-dasharray="7 6"/>
+  <polyline points="622,130 725,130 870,268 930,268" fill="none" stroke="#f97316" stroke-width="4.5"/>
+  <text x="725" y="306" font-size="23" text-anchor="middle" class="t">stage 2 starts</text>
+  <text x="870" y="306" font-size="23" text-anchor="middle" class="t">+3 ep.</text>
+  <line x1="600" y1="356" x2="648" y2="356" stroke="#f97316" stroke-width="4.5"/>
+  <text x="658" y="364" font-size="23" class="t">ours (linear)</text>
+  <line x1="805" y1="356" x2="850" y2="356" stroke="#9ca3af" stroke-width="3" stroke-dasharray="7 6"/>
+  <text x="860" y="364" font-size="23" class="t">PMT</text>
+
+  <line x1="535" y1="110" x2="561" y2="110" stroke="#6b7280" stroke-width="3.5" marker-end="url(#ag)"/>
+  <line x1="965" y1="178" x2="1000" y2="178" stroke="#f97316" stroke-width="5" marker-end="url(#ao)"/>
+  <line x1="535" y1="481" x2="1000" y2="481" stroke="#6b7280" stroke-width="3.5" marker-end="url(#ag)"/>
+
+  <!-- backbone -->
+  <rect class="grey" x="1005" y="62" width="265" height="460" rx="14"/>
+  <text class="t" x="1137" y="245" font-size="32" font-weight="700" text-anchor="middle">Shared</text>
+  <text class="t" x="1137" y="288" font-size="32" font-weight="700" text-anchor="middle">ViT-B/16</text>
+  <text x="1137" y="337" font-size="24" text-anchor="middle" fill="#374151">(PMT backbone)</text>
+
+  <!-- outputs -->
+  <line x1="1270" y1="153" x2="1306" y2="153" stroke="#6b7280" stroke-width="3.5" marker-end="url(#ag)"/>
+  <rect class="grey" x="1310" y="95" width="255" height="117" rx="12"/>
+  <text class="t" x="1437" y="146" font-size="31" text-anchor="middle">[CLS] global</text>
+  <text x="1437" y="186" font-size="24" text-anchor="middle" fill="#374151">768-d feature</text>
+  <line x1="1565" y1="153" x2="1601" y2="153" stroke="#6b7280" stroke-width="3.5" marker-end="url(#ag)"/>
+  <rect class="grey" x="1605" y="95" width="375" height="117" rx="12"/>
+  <text class="t" x="1792" y="146" font-size="31" text-anchor="middle">PMT losses</text>
+  <text x="1792" y="186" font-size="24" text-anchor="middle" fill="#374151">ID · PHT · MSEL · DCL</text>
+
+  <!-- L box -->
+  <line x1="1137" y1="522" x2="1137" y2="566" stroke="#16a34a" stroke-width="5" marker-end="url(#aG)"/>
+  <rect x="565" y="570" width="1415" height="370" rx="16" fill="#e8f5ec" stroke="#16a34a" stroke-width="3.5"/>
+  <text x="600" y="623" font-size="30" class="t"><tspan fill="#15803d" font-weight="700">L</tspan>: local ID supervision on patch tokens (training only)</text>
+  <g transform="translate(615,662)" stroke="#16a34a" stroke-width="2">
+    <rect x="0" y="0" width="140" height="76" fill="#bbf7d0"/>
+    <rect x="0" y="76" width="140" height="77" fill="#86efac"/>
+    <rect x="0" y="153" width="140" height="77" fill="#4ade80"/>
+    <g stroke="#fff" stroke-width="1.5">
+      <line x1="28" y1="0" x2="28" y2="230"/><line x1="56" y1="0" x2="56" y2="230"/>
+      <line x1="84" y1="0" x2="84" y2="230"/><line x1="112" y1="0" x2="112" y2="230"/>
+      <line x1="0" y1="38" x2="140" y2="38"/><line x1="0" y1="115" x2="140" y2="115"/><line x1="0" y1="191" x2="140" y2="191"/>
+    </g>
+    <rect x="0" y="0" width="140" height="230" fill="none"/>
+  </g>
+  <text x="685" y="922" font-size="23" text-anchor="middle" class="t">patch tokens</text>
+  <line x1="775" y1="776" x2="830" y2="776" stroke="#16a34a" stroke-width="4" marker-end="url(#aG)"/>
+  <text font-size="23" class="t"><tspan x="842" y="742">split into q</tspan><tspan x="842" y="776">height bands,</tspan><tspan x="842" y="810">mean-pool each</tspan></text>
+  <g stroke="#16a34a" stroke-width="4" fill="none">
+    <line x1="1030" y1="776" x2="1080" y2="704" marker-end="url(#aG)"/>
+    <line x1="1030" y1="776" x2="1080" y2="776" marker-end="url(#aG)"/>
+    <line x1="1030" y1="776" x2="1080" y2="848" marker-end="url(#aG)"/>
+  </g>
+  <g fill="#fff" stroke="#16a34a" stroke-width="3">
+    <rect x="1088" y="672" width="350" height="58" rx="9"/>
+    <rect x="1088" y="748" width="350" height="58" rx="9"/>
+    <rect x="1088" y="824" width="350" height="58" rx="9"/>
+  </g>
+  <g font-size="25" class="t">
+    <text x="1112" y="710">band 1 → BN → ID head</text>
+    <text x="1112" y="786">band 2 → BN → ID head</text>
+    <text x="1112" y="862">band q → BN → ID head</text>
+  </g>
+  <line x1="1448" y1="776" x2="1520" y2="776" stroke="#16a34a" stroke-width="4" marker-end="url(#aG)"/>
+  <text x="1745" y="765" font-size="31" text-anchor="middle" class="t">loss += β · mean CE</text>
+  <text x="1745" y="808" font-size="23" text-anchor="middle" fill="#374151">q = 2 or 3, β = 0.25 or 0.5</text>
+
+  <text x="20" y="1015" font-size="24" fill="#374151">Test time: retrieval uses only the global 768-d feature (same as PMT). Grey boxes = unchanged PMT.</text>
+</svg>
+</body></html>
