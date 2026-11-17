@@ -25,3 +25,6 @@ artifacts/results/*
 wandb/
 runs/
 papers/
+
+# written by Appendix A of submission/project.ipynb when it is run
+pmt_code/

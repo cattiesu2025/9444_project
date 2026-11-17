@@ -1,19 +1,22 @@
 {
-  "verified_on": "2026-10-26",
-  "notebook_sha256": "7d21bf3a19145b84cf1303e76728fe6467e5fd75ffafef063ad0250cbb7728e1",
+  "verified_on": "2026-11-17",
+  "notebook_sha256": "05c62312470e6c982b0a8b155f62964a58ea3153e317ea195660225b10a2139c",
   "nbformat": "PASS",
   "isolated_clean_kernel": "PASS",
-  "project_clean_kernel": "PASS",
-  "executed_code_cells": 4,
+  "executed_code_cells": 21,
   "error_outputs": 0,
+  "stderr_outputs": 0,
+  "todo_boxes": 21,
   "main_sections": [
     "## 1. Introduction, Motivation and Problem Statement",
     "## 2. Data Sources",
     "## 3. Exploratory Analysis of Data",
     "## 4. Models and Methods",
     "## 5. Results",
-    "## 6. Discussion"
+    "## 6. Discussion",
+    "## Appendix A. Project code"
   ],
   "html_export": "PASS",
-  "mode": "Saved measurements; no training or download"
+  "appendix_code_matches_src": "PASS (config, model, losses, training, train, export_features, agw, train_agw; all configs)",
+  "mode": "Saved measurements; no training or download; Appendix A writes pmt_code/"
 }
