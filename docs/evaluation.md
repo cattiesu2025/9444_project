@@ -77,7 +77,7 @@ python -m src.robustness \
 
 Checks before running: checkpoint SHA256 must equal the gallery pool's `checkpoint_sha256`, and the manifest SHA256 must equal the one stored in the checkpoint. The clean condition is re-extracted and compared with B's exported queries (`export_consistency`, min cosine > 0.999), which confirms the model is loaded and preprocessed exactly as in the export. Output: `robustness.json` (refuses to overwrite) and `perturbation_examples.png` showing one query under every condition.
 
-Self-tests (`tests/test_robustness.py`, 13 passing): band position and area for every region/ratio, fill value, pixels outside the band unchanged, blur deterministic and size-preserving with stronger blur lowering contrast, fixed condition list, end-to-end run on synthetic data with a tiny model (clean result identical to plain evaluation, gallery file untouched, no overwrite), perturbations change query features, rejection of a mismatched checkpoint or manifest, and strict loading of an M2/M3 checkpoint with a local head (the model is built with `src.train.build_model`, the same path as the exporter).
+Self-tests (`tests/test_robustness.py`, 13 passing): band position and area for every region/ratio, fill value, pixels outside the band unchanged, blur deterministic and size-preserving with stronger blur lowering contrast, fixed condition list, end-to-end run on synthetic data with a tiny model (clean result identical to plain evaluation, gallery file untouched, no overwrite), perturbations change query features, rejection of a mismatched checkpoint or manifest, and strict loading of an M2/M3 checkpoint with a local head (the model is built with `src.train.build_model`, or `src.agw.AGW` for AGW/CAJ checkpoints, the same path as the exporter).
 
 Runtime on an RTX 5070 Ti Laptop GPU: about 2 minutes per condition for the 1,980 validation queries (single loader worker), about 17 minutes for all 9.
 
@@ -316,7 +316,43 @@ Reading:
 - CAJ's channel augmentation helps the ResNet-50 baseline on every seed (+3.1 mAP, +5.3 Rank-1). The seed-17 gap of 4.1 that motivated M0_CA was at the high end; the three-seed gap is smaller but still clear. This matches the +1.45 that the same augmentation gives PMT (previous section is the controlled test).
 - M2's seed-17 deficit (−0.60, 0/10 galleries) does not replicate: over three seeds M2 is level with M0. The seed-to-seed spread (SD 0.5–0.9) is larger than every L/S effect, so M2, M3, M1 and L3_B050 are all level with M0. The earlier seed-17 ranking of L variants (q × β exploration) should be read as noise, not as evidence that β=0.25 or q=3 fixes a cost of q=2.
 - S and L do not add up: M3 (S+L) is level with M1 and slightly below M2.
-- Robustness (9 perturbations) and clean re-extraction were not run for these ten runs, because both need checkpoints. Their robustness rows stay seed 17 only.
+- Robustness was added once B delivered the checkpoints (next section).
+
+## Robustness over extra seeds: V0, AGW, CAJ_fix, M2, M3 (2026-11-17)
+
+B delivered checkpoints for the ten extra-seed runs (`dev_*_20261116_ckpt.zip`). All ten archives match B's `SHA256SUMS`, and each `last.pt` hash equals the `checkpoint_sha256` of the features evaluated above. `src/robustness.py` now builds the AGW/CAJ two-stream ResNet and routes each image by modality, in the same way as `src.export_features` (13/13 tests pass). Every run passes clean re-extraction consistency (min cosine ≥ 0.9995), and clean mAP reproduces the table above to within 0.01. Seed 17 checkpoints of V0/AGW/CAJ_fix were never delivered, so those rows cover seeds 42 and 2026 only. M2/M3 seed 17 reuse the 2026-11-04 runs.
+
+Mean mAP over the available seeds (drop vs clean in brackets):
+
+| Condition | V0 (2 seeds) | AGW (2) | CAJ_fix (2) | M0 (3) | M2 (3) | M3 (3) |
+| --- | --- | --- | --- | --- | --- | --- |
+| clean | 32.31 | 30.89 | 33.43 | 34.57 | 34.53 | 34.33 |
+| top 10% | 29.80 (−2.5) | 27.27 (−3.6) | 29.71 (−3.7) | 32.37 (−2.2) | 32.27 (−2.3) | 32.18 (−2.2) |
+| top 20% | 26.36 (−5.9) | 20.31 (−10.6) | 25.35 (−8.1) | 28.92 (−5.7) | 29.10 (−5.4) | 28.90 (−5.4) |
+| middle 10% | 31.78 (−0.5) | 26.07 (−4.8) | 31.90 (−1.5) | 33.63 (−0.9) | 33.85 (−0.7) | 33.45 (−0.9) |
+| middle 20% | 31.05 (−1.3) | 22.00 (−8.9) | 30.46 (−3.0) | 32.55 (−2.0) | 32.60 (−1.9) | 32.29 (−2.0) |
+| bottom 10% | 28.90 (−3.4) | 27.58 (−3.3) | 29.27 (−4.2) | 31.07 (−3.5) | 31.24 (−3.3) | 30.73 (−3.6) |
+| bottom 20% | 24.44 (−7.9) | 21.05 (−9.8) | 23.42 (−10.0) | 25.92 (−8.7) | 26.16 (−8.4) | 25.69 (−8.6) |
+| blur σ=1 | 31.94 (−0.4) | 30.74 (−0.1) | 33.67 (+0.2) | 34.31 (−0.3) | 34.16 (−0.4) | 33.92 (−0.4) |
+| blur σ=2 | 31.19 (−1.1) | 28.83 (−2.1) | 31.96 (−1.5) | 33.47 (−1.1) | 33.16 (−1.4) | 32.93 (−1.4) |
+
+Paired mAP differences (per seed in brackets; pairs where the first model is higher):
+
+| Condition | M2 − M0 (30 pairs) | M3 − M0 (30) | M3 − M2 (30) | M0 − V0 (20) | CAJ_fix − AGW (20) |
+| --- | --- | --- | --- | --- | --- |
+| clean | −0.04 (−0.61, +0.85, −0.35); 12 | −0.24; 14 | −0.20; 9 | +2.36; 20 | +2.53; 19 |
+| top 20% | +0.18 (+0.07, +0.41, +0.05); 18 | −0.02; 13 | −0.20; 8 | +2.63; 20 | +5.05; 20 |
+| middle 20% | +0.06 (−0.46, +0.76, −0.13); 15 | −0.26; 13 | −0.32; 9 | +1.55; 14 | +8.46; 20 |
+| bottom 20% | +0.24 (−0.23, +1.09, −0.16); 17 | −0.23; 12 | −0.46; 7 | +1.36; 17 | +2.37; 18 |
+| blur σ=2 | −0.31 (−0.65, +0.34, −0.62); 9 | −0.54; 6 | −0.23; 7 | +2.44; 20 | +3.12; 20 |
+
+All 9 conditions with per-seed values are in `artifacts/results/eval_checks/robustness_3seed_20261117.txt`.
+
+Reading:
+
+- M2's smaller occlusion drop on seed 17 does not replicate: over three seeds M2 is within ±0.3 of M0 under all 9 conditions, with no consistent direction (9–18 of 30 pairs higher). M3 is slightly below M0 under every condition (−0.02 to −0.54) and below M2 under every condition (5–9/30). S and L give no robustness benefit.
+- M0 stays above V0 under every condition (+1.4 to +2.7, two seeds). Its lead narrows under middle and bottom occlusion because M0 drops more there.
+- CAJ_fix stays above AGW under every condition (+1.7 to +8.5, two seeds). The gap widens most under middle occlusion, where AGW loses about 9 points. With only two seeds, and a large seed spread for CAJ_fix (top 20% drop −6.6 vs −9.5), these baseline rows are descriptive only.
 
 ## Channel augmentation: M0_CA and L3_B050_CA (validation, 2026-11-16)
 
@@ -401,4 +437,4 @@ M0_CA is higher under all 9 conditions. As on validation, top occlusion shows th
 
 ## Status
 
-The evaluator, robustness tool and concatenation script are complete and self-tested. Evaluated on val: V0, AGW, CAJ_fix, M0, M1, M2, M3, L3_B050, L3_B050_BE, M0_BE and M0_CA seeds 17/42/2026 (V0/AGW/CAJ_fix seed 17 by the team lead), L3_B050_CA seeds 42/2026, F seed17, the three L exploration runs, and robustness and fusion over three seeds for M0, M1, L3_B050, the BE and CA runs (V0/AGW/CAJ_fix/M2/M3 seeds 42/2026 were delivered without checkpoints, so no robustness). Evaluated on test (once, after the freeze): M0_final and M0_CA_final seeds 17/42/2026, All- and Indoor-search, natural-occlusion subset and robustness. Remaining: error analysis and retrieval-case figures for the report.
+The evaluator, robustness tool and concatenation script are complete and self-tested. Evaluated on val: V0, AGW, CAJ_fix, M0, M1, M2, M3, L3_B050, L3_B050_BE, M0_BE and M0_CA seeds 17/42/2026 (V0/AGW/CAJ_fix seed 17 by the team lead), L3_B050_CA seeds 42/2026, F seed17, the three L exploration runs, and robustness and fusion over three seeds for M0, M1, L3_B050, the BE and CA runs plus robustness for M2/M3 over three seeds and V0/AGW/CAJ_fix seeds 42/2026 (their seed-17 checkpoints were not delivered). Evaluated on test (once, after the freeze): M0_final and M0_CA_final seeds 17/42/2026, All- and Indoor-search, natural-occlusion subset and robustness. Remaining: robustness for V0/AGW/CAJ_fix seed 17 (needs checkpoints), L3_B050_CA seed 17 (not delivered), error analysis and retrieval-case figures for the report.
