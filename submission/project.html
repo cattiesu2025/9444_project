@@ -7588,7 +7588,7 @@ a.anchor-link {
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p><strong>How to run this notebook.</strong> All results are loaded from measurements embedded in the cells below, so <em>Restart &amp; Run All</em> needs no dataset, GPU or checkpoint and reproduces every table and figure. The full code is in the project repository (Appendix A); training and evaluation need the dataset and an NVIDIA GPU.</p>
+<p><strong>How to run this notebook.</strong> All results are loaded from measurements embedded in the cells below, so <em>Restart &amp; Run All</em> needs no dataset, GPU or checkpoint and reproduces every table and figure. The full code is in <code>project_code.zip</code>, submitted with this notebook (Appendix A); training and evaluation need the dataset and an NVIDIA GPU.</p>
 </div>
 </div>
 </div>
@@ -9537,9 +9537,7 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="Appendix-A.-Code-availability-and-reproduction">Appendix A. Code availability and reproduction<a class="anchor-link" href="#Appendix-A.-Code-availability-and-reproduction">¶</a></h2><p>The complete code (data interface, models, losses, training, feature export, evaluation and robustness tools), all run configurations and the tests are in the project repository, at the version submitted with this notebook:</p>
-<p><strong><a href="https://github.com/cattiesu2025/9444_project/tree/submission-2026-11-23">https://github.com/cattiesu2025/9444_project/tree/submission-2026-11-23</a></strong></p>
-<p>The core of each method is shown next to its description in Section 4. Datasets, checkpoints and exported features are not in the repository.</p>
+<h2 id="Appendix-A.-Code-and-reproduction">Appendix A. Code and reproduction<a class="anchor-link" href="#Appendix-A.-Code-and-reproduction">¶</a></h2><p>The complete code (data interface, models, losses, training, feature export, evaluation and robustness tools), all run configurations and the tests are in <strong><code>project_code.zip</code></strong>, submitted together with this notebook. The core of each method is shown next to its description in Section 4. Datasets, checkpoints and exported features are not included.</p>
 <table>
 <thead>
 <tr>
@@ -9561,12 +9559,12 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 <td>data and pretrained-weight preparation, Katana job scripts, fusion and natural-occlusion evaluation</td>
 </tr>
 <tr>
-<td><code>tests/</code></td>
-<td>unit tests, incl. numerical checks against the authors' code and the leakage rules</td>
+<td><code>README.md</code>, <code>ATTRIBUTION.md</code></td>
+<td>setup notes; sources, pinned upstream commits and our changes to third-party code</td>
 </tr>
 <tr>
-<td><code>docs/</code></td>
-<td>method notes and the full experiment log behind every table here</td>
+<td><code>tests/</code></td>
+<td>unit tests, incl. numerical checks against the authors' code and the leakage rules</td>
 </tr>
 </tbody>
 </table>
@@ -9672,7 +9670,7 @@ python<span class="w"> </span>-m<span class="w"> </span>src.evaluate<span class=
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <blockquote>
-<p><strong>[TODO — All members (before submission)]</strong> Create the git tag <code>submission-2026-11-23</code> on the submitted commit and push it, so that the link above resolves; tidy the repository README for markers.</p>
+<p><strong>[TODO — Zixin Su (before submission)]</strong> Build <code>project_code.zip</code> from the submitted commit and attach it to the submission email: <code>git archive --format=zip -o project_code.zip HEAD src configs scripts tests requirements-lock.txt requirements-katana-lock.txt README.md ATTRIBUTION.md</code>. Rewrite <code>README.md</code> in English for markers first.</p>
 </blockquote>
 </div>
 </div>

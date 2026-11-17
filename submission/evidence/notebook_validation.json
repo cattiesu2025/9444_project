@@ -1,6 +1,6 @@
 {
   "verified_on": "2026-11-17",
-  "notebook_sha256": "0e3fd9a4d9ea611b49c96522e3b5ef267ebb67589ba6baefc01fbd90bb6bb9cc",
+  "notebook_sha256": "31e86cff48a6bf1f98ea1397b287978ad375e850fe60d030f677ca4cd33e5e4c",
   "nbformat": "PASS",
   "isolated_clean_kernel": "PASS",
   "executed_code_cells": 16,
@@ -14,8 +14,9 @@
     "## 4. Models and Methods",
     "## 5. Results",
     "## 6. Discussion",
-    "## Appendix A. Code availability and reproduction"
+    "## Appendix A. Code and reproduction"
   ],
   "html_export": "PASS",
-  "mode": "Saved measurements; no training or download. Code excerpts in Section 4 and 5.3 are copied verbatim from src/; full code via the repository link in Appendix A"
+  "mode": "Saved measurements; no training or download. Code excerpts in Section 4 and 5.3 are copied verbatim from src/; full code in project_code.zip (Appendix A)",
+  "note": "2026-11-17 second edit changed markdown only (Appendix A, run note); outputs from the clean-kernel run are unchanged"
 }
