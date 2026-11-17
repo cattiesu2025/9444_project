@@ -92,7 +92,10 @@ def extract(model, dataset, batch_size=128, num_workers=0, device="cpu"):
     out = {key: [] for key in ("features", "identities", "cameras", "modalities", "paths")}
     with torch.inference_mode():
         for batch in loader:
-            out["features"].append(model(batch["images"].to(device))["retrieval_feature"].float().cpu().numpy())
+            images = batch["images"].to(device)
+            # AGW/CAJ 是双流模型，需要按 modality 分流（与 export_features 相同）
+            result = model(images, batch["modalities"].to(device)) if getattr(model, "modality_specific", False) else model(images)
+            out["features"].append(result["retrieval_feature"].float().cpu().numpy())
             for key in ("identities", "cameras", "modalities"):
                 out[key].append(batch[key].numpy())
             out["paths"].extend(batch["paths"])
@@ -105,9 +108,14 @@ def extract(model, dataset, batch_size=128, num_workers=0, device="cpu"):
 def load_model(checkpoint_path, device):
     from .train import build_model
     from .training import load_checkpoint
+    from .agw import AGW, BACKBONE as AGW_BACKBONE
     checkpoint = load_checkpoint(checkpoint_path)
-    # 与导出脚本同一构建路径：M2/M3 带局部头，strict 加载才能对上参数名
-    model = build_model(checkpoint["num_classes"], checkpoint["config"], checkpoint["seed"]).to(device)
+    cfg = checkpoint["config"]
+    # 与导出脚本同一构建路径：AGW/CAJ 用 ResNet 双流；M2/M3 带局部头，strict 加载才能对上参数名
+    if cfg["model"].get("backbone") == AGW_BACKBONE:
+        model = AGW(checkpoint["num_classes"], cfg["model"]).to(device)
+    else:
+        model = build_model(checkpoint["num_classes"], cfg, checkpoint["seed"]).to(device)
     model.load_state_dict(checkpoint["model"], strict=True)
     return model.eval(), checkpoint
 
