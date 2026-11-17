@@ -1,9 +1,9 @@
 {
   "verified_on": "2026-11-17",
-  "notebook_sha256": "31e86cff48a6bf1f98ea1397b287978ad375e850fe60d030f677ca4cd33e5e4c",
+  "notebook_sha256": "5256408a4f77f9644d8469cf76eb74bb93ad9aa399c8397820eef2f52a4e0c74",
   "nbformat": "PASS",
   "isolated_clean_kernel": "PASS",
-  "executed_code_cells": 16,
+  "executed_code_cells": 15,
   "error_outputs": 0,
   "stderr_outputs": 0,
   "todo_boxes": 18,
@@ -17,6 +17,5 @@
     "## Appendix A. Code and reproduction"
   ],
   "html_export": "PASS",
-  "mode": "Saved measurements; no training or download. Code excerpts in Section 4 and 5.3 are copied verbatim from src/; full code in project_code.zip (Appendix A)",
-  "note": "2026-11-17 second edit changed markdown only (Appendix A, run note); outputs from the clean-kernel run are unchanged"
+  "mode": "Saved measurements; no training or download. Code excerpts in Section 4 and 5.3 are copied verbatim from src/; full code in project_code.zip (Appendix A)"
 }
