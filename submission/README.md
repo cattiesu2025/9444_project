@@ -1,30 +1,46 @@
-# Notebook 提交结构
+# Integrated notebook submission
 
-`project.ipynb` 是唯一整合 Notebook，按评分表分成六部分：
+`project.ipynb` is the single integrated notebook. Its six main sections follow the project requirements:
 
 1. Introduction, Motivation and Problem Statement
 2. Data Sources
 3. Exploratory Analysis of Data
 4. Models and Methods
 5. Results
-6. Discussion（末尾附 References）
+6. Discussion, followed by References
 
-Writing 是全文的表达与组织质量，不单独设章节。正文呈现研究问题、方法、实验结果和解释，不放评分映射、成员任务清单、PBS作业号、校验和或排障流水账。
+Writing quality applies throughout; it is not a separate section. The narrative explains the research questions, methods, measurements and interpretation. Engineering records, job identifiers, hashes and troubleshooting histories belong in supporting files, not the scientific narrative.
 
-## 当前内容（2026-11-17）
+## Running the notebook
 
-骨架已按最终结论重排，B 负责的部分已写完：§4.1 PMT、§4.2 对照 baseline、§4.6 训练设置、§4.8 最终阶段（395 身份、防泄漏、候选更换的时间顺序）、§5.1 训练损失（含 24 epoch 曲线）、§5.2 四个 baseline 三种子对比（配对差、CMC）、§5.3 CAJ 塌缩与修正、§5.6 M0 vs M0_CA 与候选选择、§5.7 最终 6 次训练记录、§6.1/§6.3，以及 §4.1/§4.8/§5.3 中 B 的核心代码片段（原样摘自 `src/`）和附录 A 的代码说明（完整代码以 `project_code.zip` 随 notebook 一起提交，生成命令见附录 A 的 TODO）。顶部已加入组名和成员表。
+Use a Python environment with the packages in `requirements-notebook.txt`, plus NumPy, Matplotlib and PyTorch (CPU is sufficient). Restart the kernel and run all cells in order. Results are saved measurements embedded in the notebook; code excerpts and synthetic checks illustrate implementation correctness. Default execution does not train models, download files or require SYSU-MM01 images, checkpoints, a GPU or the repository on the Python path. Figures from external papers and image examples are embedded as notebook attachments.
 
-其余部分是醒目的 `[TODO — 负责人]` 框，由各自负责人填写（搜索 `[TODO` 即可找到，共 21 处）：A 写 §2 补充与 §3.2 EDA；C 写 §4.3/§5.4；D 写 §4.4/§5.5；E 写 §4.4 band erasing、§4.5 CA、§4.7、§5.5–§5.8 的评价部分（包括测试集结果）；全组核对成员表，写总结、§6.2/§6.4。C/D/E 各自在方法小节里放 30–60 行核心代码片段（TODO 里已写明）。提交前要删掉所有 TODO 框。
+`project.html` is the corresponding reading preview, not another submission notebook. `evidence/notebook_validation.json` records the latest execution method, notebook hash and output checks. The current environment blocks TCP and IPC kernel sockets. All 48 code cells passed sequential replay in a fresh IPython process and empty working directory, with tables and figures captured; a conventional Jupyter Restart & Run All remains recommended. Validation does not rerun or independently reproduce GPU experiments.
 
-Notebook 保存了执行后的输出，小型结果数据直接写在单元里，默认执行时不训练、不下载、不依赖数据集或权重。完整代码不放进 notebook，打包成 `project_code.zip` 作为邮件附件（约 140 KB）。`project.html` 只是阅读预览，不是第二份提交的 Notebook。运行依赖见根目录 `requirements-notebook.txt`（另需 numpy、matplotlib、torch；核心代码单元会 import torch）。
+## C contribution integrated on 21 November 2026
 
-## 工程记录的位置
+- Section 4.3: motivation, PBSVT attribution, exact grayscale schedule, exposure-matched F control, a core excerpt from `src/schedules.py`, synthetic boundary/exposure/reconstruction checks and probability curves.
+- Section 5.4: saved three-seed M0/M1 comparisons, F's single-seed control, S-plus-L comparison, interpretation, limitations and the L3_B025 configuration contribution.
+- Section 6.2: the answer to RQ1, consistent with the measured negative result.
 
-- `docs/baseline.md`：训练、恢复、AMP修复和完整复现命令。
-- `artifacts/results/`：原始日志、运行环境、特征和校验记录。
-- `submission/evidence/`：可版本管理的结果摘要与Notebook执行记录。
+The notebook narrative, code comments and generated labels are in English. S probability curves are computed from the configuration and are not measured loss or adaptation curves. No missing M1/F training trajectories have been fabricated. F and the initial local-configuration exploration remain explicitly single-seed results. The unavailable Q retrieval result is disclosed as a limitation rather than left as a TODO or invented.
 
-这些记录支持查证，不全部搬入正文。完整复训仍需仓库源码、配置、数据和训练依赖；辅助文件允许的提交方式以课程公告为准。开发用Notebook不作为额外最终Notebook提交。
+## Supporting code
 
-当前是工作稿。正式提交前还需补齐真实评价和实验讨论、成员信息，并完成报告（正文最多4页，不含参考文献）与展示材料。
+Build the separate code archive from the submitted revision, as described in Appendix A:
+
+```bash
+git archive --format=zip -o submission/project_code.zip HEAD src configs scripts tests requirements-lock.txt requirements-katana-lock.txt requirements-notebook.txt README.md ATTRIBUTION.md
+```
+
+Submit that archive only through the supporting-file route allowed by the course announcement. Do not include datasets, pretrained weights or checkpoints. Full retraining requires the repository configuration, dataset and training dependencies; it is separate from replaying the notebook's saved results.
+
+## Evidence and final review
+
+- `docs/evaluation.md`: development and final-test results and evaluation protocol.
+- `docs/final_stage.md`: final configuration decisions and 395-identity retraining.
+- `docs/baseline.md`: training and restoration details.
+- `artifacts/results/`: external run logs, features and provenance records.
+- `submission/evidence/`: versioned notebook execution records and compact measurements.
+
+Before the group submits, review the member information, citations, final conclusions and attachment list. The summary report has a separate maximum of four body pages, excluding references. A successful notebook execution does not certify the report, presentation or administrative submission requirements.
