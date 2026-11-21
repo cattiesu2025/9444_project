@@ -1,21 +1,14 @@
 {
-  "verified_on": "2026-11-17",
-  "notebook_sha256": "6dd46a68b919b40b4259c9de0fb441d2591a8c5f856992f17cff4b2c71b96f6b",
+  "verified_on": "2026-11-21",
+  "notebook_sha256": "81e00c69ed8c390f340fb545c25de0340cd7632b1bee1c51ac219da8e2d44aae",
   "nbformat": "PASS",
-  "isolated_clean_kernel": "PASS",
-  "executed_code_cells": 15,
+  "fresh_process_sequential_replay": "PASS",
+  "execution_method": "IPython InteractiveShell in a fresh Python process and empty working directory, with captured rich outputs.",
+  "jupyter_kernel_execution": "BLOCKED: environment denies both TCP and IPC kernel socket binding; independent Restart & Run All still recommended.",
+  "executed_code_cells": 48,
   "error_outputs": 0,
-  "stderr_outputs": 0,
-  "todo_boxes": 21,
-  "main_sections": [
-    "## 1. Introduction, Motivation and Problem Statement",
-    "## 2. Data Sources",
-    "## 3. Exploratory Analysis of Data",
-    "## 4. Models and Methods",
-    "## 5. Results",
-    "## 6. Discussion",
-    "## Appendix A. Code and reproduction"
-  ],
+  "todo_boxes": 0,
+  "chinese_source_characters": 0,
   "html_export": "PASS",
-  "mode": "Saved measurements; no training or download. Code excerpts in Section 4 and 5.3 are copied verbatim from src/; full code in project_code.zip (Appendix A)"
+  "mode": "Saved measurements and synthetic checks; no training, downloads, dataset or checkpoints required."
 }
