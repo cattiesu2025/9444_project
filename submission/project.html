@@ -7878,7 +7878,7 @@ a.anchor-link {
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=5fd2d358">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=99be9c57">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7886,7 +7886,7 @@ a.anchor-link {
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <h3 id="Summary-of-findings">Summary of findings<a class="anchor-link" href="#Summary-of-findings">¶</a></h3><ul>
 <li><strong>Baselines (validation, three seeds).</strong> PMT (M0) reaches 34.6 mAP / 32.2 Rank-1. It is above a plain ViT (V0) and the CNN baseline AGW on all 30 seed–gallery pairs, and 0.8 mAP above our corrected CAJ (CAJfix). CAJ with the authors' code collapsed during training; a one-line correction restored it (Section 5.3).</li>
-<li><strong>Extensions.</strong> <em>[TODO — C, D: one line each for S and L (incl. fusion).]</em> Band erasing (M0 + BE, M2* + BE), our own augmentation, costs 0.9–1.0 mAP on clean queries and is lower under eight of nine perturbations, so it was dropped (Section 5.5).</li>
+<li><strong>Extensions.</strong> <em>[TODO — C, D: one line each for S and L (incl. fusion).]</em> Band erasing (M0 + BE, M2* + BE), our own augmentation, reduces clean mAP by 0.9–1.0 and is lower under eight of nine perturbations, so it was dropped (Section 5.5).</li>
 <li><strong>Channel augmentation.</strong> PMT + CA (M0 + CA) is the only configuration clearly above M0 on validation: 36.0 vs 34.6 mAP (+1.45), higher on all three seeds and 28 of 30 seed–gallery pairs. It was therefore taken to the final stage.</li>
 <li><strong>Final test.</strong> Retrained on all 395 training identities and evaluated once on the test set, M0 reaches 64.6 mAP / 66.3 Rank-1 in All-search, within 0.4 mAP of the published PMT result. M0 + CA reaches 66.2 / 68.2 (+1.6 mAP, higher on every seed and on 28 of 30 seed–gallery pairs) and 78.4 mAP in Indoor-search (+1.55, 30 of 30). The gain holds under all nine perturbations and on the 224 naturally occluded queries (Section 5.7).</li>
 </ul>
@@ -8619,18 +8619,18 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=abbfcb09">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=fc0d89ae">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p><strong>Band erasing (BE: M0 + BE, M2* + BE).</strong> Band erasing is our own augmentation. It asks whether training with occlusion directly gives the robustness that L aims for, without extra heads. With probability 0.5, one of q = 3 horizontal bands of the training image is filled with the ImageNet mean over its full width. The bands use the same boundaries as the local head's regions (band j covers rows ⌊jH/q⌋ to ⌊(j+1)H/q⌋), so in M2* + BE an erased band is exactly one region, whose identity loss must then be learned from what remains visible. BE is applied to both modalities as the last training transform. With p = 0 it draws no random numbers, so every other experiment keeps its augmentation sequence. M0 + BE and M2* + BE differ from M0 and M2* only in <code>augmentation.band_erasing = 0.5</code>.</p>
+<p><strong>Band erasing (BE: M0 + BE, M2* + BE).</strong> Band erasing is our own augmentation. It tests whether training directly on occluded images yields the robustness that L targets, without additional heads. With probability 0.5, one of q = 3 horizontal bands of the training image is filled with the ImageNet mean over its full width. The bands use the same boundaries as the local head's regions (band j covers rows ⌊jH/q⌋ to ⌊(j+1)H/q⌋), so in M2* + BE an erased band coincides exactly with one region, which must then be identified from the remaining visible parts. BE is applied to both modalities as the last training transform. With p = 0 it draws no random numbers, so every other experiment keeps its augmentation sequence. M0 + BE and M2* + BE differ from M0 and M2* only in <code>augmentation.band_erasing = 0.5</code>.</p>
 <p>The core of <code>BandErasing</code> in <code>src/data.py</code>:</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=65494696">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=aaff7315">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8665,7 +8665,7 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=2a108a27">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=f95091cf">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8736,24 +8736,24 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=25759ca4">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=a597d302">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p><strong>Why.</strong> Under our protocol the corrected CAJ is 3.1 mAP above AGW on every seed (Section 5.2), and channel augmentation is its cheapest component. PMT removes colour only during its six-epoch grey stage; afterwards the model can rely on colour again, which IR images lack. Channel augmentation keeps removing colour for the whole of training, and the three channels give different grey-level views of the same clothing, closer to how IR renders it. It adds no parameters and no test-time cost. It was added after the configuration freeze of 11/08, once S and L had shown no gain, with the decision rule written before its runs: M0 + CA must exceed M0 in mean validation mAP, with the same sign on every seed (Section 4.8).</p>
+<p><strong>Why.</strong> Under our protocol the corrected CAJ is 3.1 mAP above AGW on every seed (Section 5.2), and channel augmentation is its cheapest component. PMT removes colour only during its six-epoch grey stage; afterwards the model can rely on colour again, which IR images lack. Channel augmentation keeps removing colour for the whole of training, and the three channels give different grey-level views of the same clothing, closer to how IR renders it. It adds no parameters and no test-time cost. It was added after the configuration freeze on 8 November, once S and L had shown no gain, with the decision rule written before its runs: M0 + CA must exceed M0 in mean validation mAP, with the same sign on every seed (Section 4.8).</p>
 <p><strong>How.</strong> We reuse CAJ's two operations [4] on the normalised tensor, after PMT's random erasing:</p>
 <ul>
 <li><em>ChannelExchange</em> (RGB): with probability p = 0.5, one of R, G and B is chosen at random and copied to all three channels.</li>
-<li><em>ChannelAdapGray</em> (IR): with probability 3/4 one channel is copied to all three; otherwise the image is converted to grey with probability 0.5 and left unchanged otherwise. SYSU-MM01 IR images already have three identical channels, so this step changes them very little.</li>
+<li><em>ChannelAdapGray</em> (IR): with probability 3/4 one channel is copied to all three; in the remaining cases it is converted to greyscale with probability 0.5 and otherwise left unchanged. SYSU-MM01 IR images already have three identical channels, so this step changes them very little.</li>
 </ul>
 <p><strong>Our change to CAJ.</strong> CAJ adds the channel-exchanged image as an extra RGB view, which doubles the RGB part of the batch (96 instead of 64 images). PMT's MSEL and DCL pair the RGB and IR halves of a 2PK batch identity by identity, so we replace the image instead of adding a view: the batch stays 8 identities × 4 images per modality, and in expectation half of the RGB samples are exchanged, as in CAJ. p = 0.5 follows CAJ and was not tuned. M0 + CA differs from M0 only in <code>augmentation.channel_exchange = 0.5</code>; M2* + CA adds the same key to M2*.</p>
 <p>The operations from <code>src/agw.py</code> and their use in <code>PMTTrainTransform</code> (<code>src/data.py</code>):</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=083319a1">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=37514b00">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8807,7 +8807,7 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=a4ec8614">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=7320d080">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8942,7 +8942,7 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=1e177b91">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=8ed88043">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8957,13 +8957,13 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 <p>Each metric is computed per gallery and averaged over the ten galleries; means and SDs over seeds are taken over these averages. Two models are compared on the same seed and gallery (30 pairs for three seeds), and we report the mean difference, the per-seed differences and the number of pairs in which one model is higher.</p>
 <p><strong>Robustness.</strong> Only the IR queries are perturbed; the gallery features are reused unchanged. There are nine fixed conditions: clean; a band filled with the ImageNet mean covering 10% or 20% of the image height at the top, middle or bottom; and Gaussian blur with σ = 1 or 2. Perturbations are deterministic and applied after resizing, before normalisation. Each run first re-extracts the clean features and checks them against the exported ones (<code>src/robustness.py</code>).</p>
 <p><strong>Test-time fusion (M2* only).</strong> As a separate variant outside the main protocol, M2*'s trained local features are concatenated with the global feature. The weights were fixed before the runs: the global feature takes half of the cosine similarity and the three regions share the rest. Fusion changes the retrieval dimension from 768 to 3,072.</p>
-<p><strong>Natural occlusion.</strong> Member A annotated 224 naturally occluded IR queries in the test split; the validation queries contain none. They are evaluated once, descriptively, on the final models only, and were never used for any choice.</p>
+<p><strong>Natural occlusion.</strong> Member A annotated 224 naturally occluded IR queries in the test split; the validation queries contain none. They are evaluated once, descriptively, on the final models only, and were never used for model selection.</p>
 <p><strong>Validation coverage.</strong> Validation IR queries come only from camera 3 and RGB candidates only from cameras 4 and 5, so validation scores serve internal comparisons only (see above). The test split covers all cameras and is evaluated in All-search and Indoor-search.</p>
 <p>The core of <code>sysu_metrics</code> in <code>src/evaluate.py</code> (ranking, camera exclusion, identity-level CMC, AP and INP per query):</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=62e77fb8">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=55181159">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8997,7 +8997,7 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=a9505d1d">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=3ccdd506">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -9820,7 +9820,7 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=5c672250">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=6cb519e2">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -9833,7 +9833,7 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=7fcdda5a">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=7c49c2c6">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -9843,7 +9843,7 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=e0c2c913">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=15d78e73">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -10077,7 +10077,7 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=231cbefb">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=4b48c1c6">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -10112,14 +10112,14 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=1106ce5a">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=a0ba5059">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <ul>
-<li><strong>Bottom occlusion is the hardest perturbation for every model.</strong> Covering the lowest 20% of the query costs M0 8.7 mAP points, against 5.7 for the top 20% and 2.0 for the middle 20%. In these crops the legs and shoes appear to carry much of the identity information that survives the change of modality.</li>
+<li><strong>Bottom occlusion is the hardest perturbation for every model.</strong> Covering the lowest 20% of the query reduces M0's mAP by 8.7 points, compared with 5.7 for the top 20% and 2.0 for the middle 20%. In these crops the legs and shoes appear to carry much of the identity information that survives the change of modality.</li>
 <li><strong>L gives no robustness gain.</strong> M2 and M2* stay within ±0.35 mAP of M0 under every condition. M2* keeps a small advantage only under middle occlusion (+0.30 and +0.33, higher on 20 and 18 of 30 pairs). On seed 17 alone M2* looked higher under every perturbation; over three seeds this does not hold.</li>
 <li><strong>S + L is below L.</strong> M3 is below M2 under all nine conditions (−0.1 to −0.5 mAP, higher on at most 9 of 30 pairs), so adding S to L does not help robustness either.</li>
 </ul>
@@ -10127,7 +10127,7 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=afbdafc5">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=f83bd139">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -10137,7 +10137,7 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=b6ce363a">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=71f71ecf">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -10244,24 +10244,24 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=9f8f9fdd">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=e9acd1c8">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p>Fusion raises M2* under all nine conditions, but only by 0.06–0.26 mAP, while making the retrieval feature four times larger. The effect is consistent (26 of 27 seed–condition differences are positive) but too small to justify the cost, so every other result in this notebook retrieves with the global feature only.</p>
+<p>Fusion improves M2* under all nine conditions, but only by 0.06–0.26 mAP, while making the retrieval feature four times larger. The effect is consistent (26 of 27 seed–condition differences are positive) but too small to justify the cost, so every other result in this notebook retrieves with the global feature only.</p>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=fb4e9675">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=6ec08ad5">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p><strong>Band erasing (negative result).</strong> In the tables above, band erasing lowers clean mAP by 0.89 for M0 (M0 + BE higher on only 6 of 30 pairs) and by 1.02 for M2*. It does not buy robustness in return: both BE models are lower than their counterparts under eight of nine conditions, and only bottom 20% occlusion is slightly higher (+0.17 and +0.21, about 20 of 30 pairs). A possible reason is that erasing a whole third of the image in half of the training samples removes information the model would otherwise learn from, while the test bands (10–20% of the height) are smaller. Band erasing was not used further.</p>
+<p><strong>Band erasing (negative result).</strong> In the tables above, band erasing lowers clean mAP by 0.89 for M0 (M0 + BE higher on only 6 of 30 pairs) and by 1.02 for M2*. Nor does it improve robustness: both BE models are lower than their counterparts under eight of nine conditions, and only bottom 20% occlusion is slightly higher (+0.17 and +0.21, about 20 of 30 pairs). A possible reason is that erasing a whole third of the image in half of the training samples removes information the model would otherwise learn from, while the test bands (10–20% of the height) are smaller. Band erasing was not used further.</p>
 </div>
 </div>
 </div>
@@ -10418,7 +10418,7 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=717d222c">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=f36a90ce">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -10428,7 +10428,7 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=75de31fa">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=fd8e01cb">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -10543,7 +10543,7 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=1d9a50bb">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=2f791f53">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -10554,17 +10554,17 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=c587d4b8">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=4a4f93e7">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p><strong>Combining CA with L (M2* + CA).</strong> Seeds 42 and 2026 were delivered to us with features and are evaluated here. Seed 17 was evaluated by Member B on the same galleries (<code>docs/channel_augmentation.md</code>: M2* + CA 35.50 vs M0 + CA 35.86 mAP); only its mean is available, so it enters the seed means but not the pair counts.</p>
+<p><strong>Combining CA with L (M2* + CA).</strong> For seeds 42 and 2026, the exported features were available and are evaluated here. Seed 17 was evaluated by Member B on the same galleries (<code>docs/channel_augmentation.md</code>: M2* + CA 35.50 vs M0 + CA 35.86 mAP); only its mean is available, so it enters the seed means but not the pair counts.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=2ace9d90">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=4095b689">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -10673,13 +10673,13 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=1d3667eb">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=6cab86ef">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p>M2* + CA is below M0 + CA on every seed: −0.36 on seed 17 (evaluated by Member B) and −0.79 on seeds 42 and 2026 (higher on only 2 of 20 pairs), giving 35.4 ± 0.7 against 36.0 ± 0.4 mAP over three seeds. Member B's paired evaluation of all three seeds gives a mean difference of −0.66 (M2* + CA higher on only 6 of 30 pairs); the −0.64 implied by the table above differs only because two of its seeds come from our re-extracted features. It is also lower under all nine perturbations (−0.6 to −1.5). CA does help M2* itself (+0.75 on seeds 42 and 2026), so the two changes are compatible, but local supervision adds nothing once CA is used: the gains do not add up. M0 + CA therefore remained the only candidate for the final stage.</p>
+<p>M2* + CA is below M0 + CA on every seed: −0.36 on seed 17 (evaluated by Member B) and −0.79 on seeds 42 and 2026 (higher on only 2 of 20 pairs), giving 35.4 ± 0.7 against 36.0 ± 0.4 mAP over three seeds. Member B's paired evaluation of all three seeds gives a mean difference of −0.66 (M2* + CA higher on only 6 of 30 pairs); the −0.64 implied by the table above differs only because two of its seeds come from our re-extracted features. It is also lower under all nine perturbations (−0.6 to −1.5). CA does help M2* itself (+0.75 on seeds 42 and 2026), so the two changes are compatible, but local supervision brings no further gain once CA is used, so the two gains are not additive. M0 + CA therefore remained the only candidate for the final stage.</p>
 </div>
 </div>
 </div>
@@ -10695,7 +10695,7 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=df05e7be">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=ba500dab">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -10745,7 +10745,7 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 </tbody>
 </table>
 <p><strong>What is comparable.</strong> PMT's published result uses the same dataset and test protocol as ours. Our M0 is within 0.4 mAP of it in All-search and slightly above it in Indoor-search mAP. The paper reports one trained model, while our numbers are means over three seeds, and the gap is well inside our seed SD (1.2 mAP for M0 in All-search).</p>
-<p><strong>What is not.</strong> The published AGW and CAJ results are listed for reference only. They come from the authors' own settings: a ResNet-50 at 288 × 144, their own schedules, and for CAJ the full method (channel augmentation together with channel erasing, grayscale augmentation and joint learning over original and augmented views). Published CAJ is above our M0 + CA, but the difference mixes all of these factors and cannot be attributed to any one of them. A fair comparison needs the same split, sampler and evaluator, so we retrained AGW and CAJ under ours (Section 5.2), where both are below M0. Our claim is therefore a controlled gain of channel augmentation over PMT, not a new state of the art.</p>
+<p><strong>What is not.</strong> The published AGW and CAJ results are listed for reference only. They come from the authors' own settings: a ResNet-50 at 288 × 144, their own schedules, and for CAJ the full method (channel augmentation together with channel erasing, greyscale augmentation and joint learning over original and augmented views). Published CAJ is above our M0 + CA, but the difference mixes all of these factors and cannot be attributed to any one of them. A fair comparison needs the same split, sampler and evaluator, so we retrained AGW and CAJ under ours (Section 5.2), where both are below M0. Our claim is therefore a controlled gain of channel augmentation over PMT, not a new state of the art.</p>
 </div>
 </div>
 </div>
@@ -10760,7 +10760,7 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=fab2f56b">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=76ecac76">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -10957,7 +10957,7 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=5c3322d9">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=824b5170">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -10990,7 +10990,7 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=0b6a84bd">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=5a28ef33">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -10999,13 +10999,13 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 <ul>
 <li><strong>All-search.</strong> M0 + CA improves mAP by 1.60, mINP by 1.41 and Rank-1 by 1.93 points over M0, on every seed and on 28 of 30 seed–gallery pairs, with a smaller seed spread (mAP SD 0.6 vs 1.2). The per-seed gain varies (+0.31 to +3.36 mAP), mainly because M0's seed-2026 model is weaker; this is why every claim rests on three seeds.</li>
 <li><strong>Indoor-search.</strong> The gain is +1.55 mAP and +1.76 Rank-1, with mAP higher on all 30 pairs. Indoor search uses only the indoor RGB cameras and has a higher baseline, and the gain is about the same size as in All-search.</li>
-<li><strong>Where the gain is.</strong> The CMC curves differ most at the first ranks and almost meet by Rank-20 (98.5–99.4% for both models), so CA mainly moves the true match from the next few ranks to rank 1 (Section 5.8).</li>
+<li><strong>Gain across ranks.</strong> The CMC curves differ most at the first ranks and almost meet by Rank-20 (98.5–99.4% for both models), so CA mainly moves the true match from the next few ranks to rank 1 (Section 5.8).</li>
 </ul>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=c392445c">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=6627663a">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -11015,7 +11015,7 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=549c2a7a">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=e74fb721">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -11132,7 +11132,7 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=ea1e402e">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=c15b6dd7">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -11142,7 +11142,7 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=ba576254">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=524e7e5f">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -11212,13 +11212,13 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=e0f3c477">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=c8f43877">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p>On the test set M0 + CA stays above M0 under all nine perturbations (+0.91 to +1.69 mAP, higher on 21–29 of 30 pairs). As on validation, its smallest gain is under top occlusion, where it is slightly lower on seed 17 (−0.17 and −0.41). The 224 naturally occluded queries, mostly people partly hidden by pillars or seen from the side, are 4.7 mAP harder than the rest for M0. CA improves them by +1.68, the same as the queries without occlusion (+1.59). The subset is small and was chosen by hand, so this is descriptive only: CA is a general improvement, not an occlusion-specific one.</p>
+<p>On the test set M0 + CA stays above M0 under all nine perturbations (+0.91 to +1.69 mAP, higher on 21–29 of 30 pairs). As on validation, its smallest gain is under top occlusion, where it is slightly lower on seed 17 (−0.17 and −0.41). The 224 naturally occluded queries, mostly people partly hidden by pillars or seen from the side, are 4.7 mAP harder than the rest for M0. CA improves them by +1.68, comparable to the gain on queries without occlusion (+1.59). The subset is small and was chosen by hand, so this is descriptive only: CA is a general improvement, not an occlusion-specific one.</p>
 </div>
 </div>
 </div>
@@ -11234,17 +11234,17 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=2d2bb807">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=a26fbb81">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p>Where do the final models still fail? All statistics use the test set, All-search, three seeds × ten galleries (114,090 query–gallery cases per model).</p>
+<p>This section examines where the final models still fail. All statistics use the test set, All-search, three seeds × ten galleries (114,090 query–gallery cases per model).</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=4253eaea">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=5ce878a9">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -11391,7 +11391,7 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=2eeaf5bd">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=aeae845f">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -11399,14 +11399,14 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <ul>
 <li><strong>Most errors are near misses.</strong> M0 + CA ranks the true match first for 68.2% of query–gallery cases and second or third for another 15.5%; only 5.7% are outside the top 10. Of its Rank-1 errors, 48.8% have the true match in the top 3 and 82.1% in the top 10. Compared with M0, CA moves cases from rank 4 and beyond to rank 1, while the share at ranks 2–3 stays the same.</li>
-<li><strong>Camera 6 is harder.</strong> Queries from IR camera 6 reach 63.6 mAP against 68.8 for camera 3 (M0 + CA). CA improves both cameras (+1.9 and +1.3).</li>
+<li><strong>Camera 6 is harder.</strong> Queries from IR camera 6 reach 63.6 mAP against 68.8 for camera 3 (M0 + CA). CA improves results on both cameras (+1.9 and +1.3).</li>
 <li><strong>CA changes many individual results.</strong> For the same query, seed and gallery, CA turns 9.1% of cases from wrong to right at Rank-1 and 7.2% from right to wrong. The net gain of 1.9 points is the difference of two much larger movements, so CA re-ranks many queries rather than only fixing the hardest ones.</li>
 </ul>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=c6c69a86">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=ed254656">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -11418,20 +11418,20 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=6908dbbb">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=1fca6f98">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p>Failure types seen in the drawn cases:</p>
+<p>The sampled cases illustrate four failure types:</p>
 <ul>
 <li><strong>(a) Similar build and clothing cut.</strong> The top-ranked person has the same silhouette and clothing shape, which IR cannot separate without colour.</li>
 <li><strong>(b) Low-contrast camera-6 image.</strong> The query is dark and blurred, and the correct image is a near tie with the top result.</li>
 <li><strong>(c) Bright IR clothing.</strong> A shirt that is bright in IR can be almost any colour in RGB, so a different person in light clothing ranks first.</li>
 <li><strong>(d) Back view.</strong> A backpack covers much of the body and dominates the feature.</li>
 </ul>
-<p>These are a small random sample; the failure types are our reading of the images, not a measured distribution.</p>
+<p>These cases form a small random sample, and the failure types reflect our visual inspection rather than a measured distribution.</p>
 </div>
 </div>
 </div>
@@ -11449,7 +11449,7 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=375a8d12">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=0e2cb898">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -11458,14 +11458,14 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 <h3 id="6.2-Answers-to-the-research-questions">6.2 Answers to the research questions<a class="anchor-link" href="#6.2-Answers-to-the-research-questions">¶</a></h3><blockquote>
 <p><strong>[TODO — Members C and D]</strong> RQ1 (S) and RQ2/RQ3 (L, S + L) with the specific numbers from Sections 5.4–5.5.</p>
 </blockquote>
-<p><strong>RQ4: channel augmentation.</strong> Yes. CA is the only change that clearly improves PMT: +1.45 mAP on validation (every seed, 28 of 30 pairs), and on the test set, evaluated once, +1.6 mAP in All-search and +1.55 in Indoor-search. The gain holds under all nine perturbations and on naturally occluded queries, and it costs nothing at test time. A likely reason is that copying one channel removes colour cues, which IR images lack, throughout training, whereas PMT's grey stage does so only for six epochs. We have not tested this, for example with attention maps.</p>
-<p><strong>Negative results.</strong> Three further changes did not help, and we report them as results. Band erasing costs about 1 mAP and does not improve robustness (Section 5.5). Combining L with CA is 0.66 mAP below CA alone, so the gains do not add up (Section 5.6). Test-time fusion of local features adds at most 0.26 mAP at four times the feature size (Section 5.5). Single-seed differences of up to 0.6 mAP (M2* +0.5 and M2 −0.6 on seed 17) disappeared over three seeds; M0 itself varies by 0.5 mAP across seeds.</p>
+<p><strong>RQ4: channel augmentation.</strong> CA is the only change that clearly improves PMT: +1.45 mAP on validation (every seed, 28 of 30 pairs), and on the test set, evaluated once, +1.6 mAP in All-search and +1.55 in Indoor-search. The gain holds under all nine perturbations and on naturally occluded queries, and it adds no test-time cost. A likely reason is that copying one channel removes colour cues, which IR images lack, throughout training, whereas PMT's grey stage does so only for six epochs. We have not tested this, for example with attention maps.</p>
+<p><strong>Negative results.</strong> Three further changes did not help, and we report them as results. Band erasing costs about 1 mAP and does not improve robustness (Section 5.5). Combining L with CA is 0.66 mAP below CA alone, so the gains are not additive (Section 5.6). Test-time fusion of local features adds at most 0.26 mAP at four times the feature size (Section 5.5). Single-seed differences of up to 0.6 mAP (M2* +0.5 and M2 −0.6 on seed 17) disappeared over three seeds; M0 itself varies by 0.5 mAP across seeds.</p>
 <p><strong>Failure types.</strong> The remaining errors are mostly near misses (49% of Rank-1 errors have the true match in the top 3). They come from people of similar build and clothing cut, low-contrast camera-6 images, bright IR clothing whose colour cannot be inferred, and back views dominated by a backpack (Section 5.8).</p>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=f458fcab">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=ed1b2743">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -11485,7 +11485,7 @@ $$L_2=L_{ID}^{R}+L_{ID}^{I}+L_{tri}^{all}+0.5L_{MSEL}+0.5L_{DCL}.$$</p>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=7ff9b866">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=3411a306">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
